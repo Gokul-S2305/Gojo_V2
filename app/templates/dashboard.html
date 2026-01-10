@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="padding-top: 40px;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
+        <h1>Welcome, {{ user.full_name }}</h1>
+        <a href="/logout" class="btn" style="background: rgba(255,255,255,0.1); font-size: 0.9rem;">Logout</a>
+    </div>
+
+    <!-- Actions -->
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 40px;">
+        <div class="glass-card">
+            <h3>Create a Trip</h3>
+            <form action="/trip/create" method="post">
+                <input type="text" name="trip_name" placeholder="Trip Name" required
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none;">
+                <input type="text" name="destination" placeholder="Destination" required
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none;">
+                <div style="display: flex; gap: 10px;">
+                    <input type="date" name="start_date" required
+                        style="flex: 1; padding: 10px; border-radius: 8px; border: none;">
+                    <input type="date" name="end_date" required
+                        style="flex: 1; padding: 10px; border-radius: 8px; border: none;">
+                </div>
+                <button type="submit" class="btn" style="margin-top: 15px; width: 100%;">Create Trip</button>
+            </form>
+        </div>
+
+        <div class="glass-card">
+            <h3>Join a Trip</h3>
+            <p style="color: #aaa; margin-bottom: 20px;">Enter the 6-character code shared by your friend.</p>
+            <form action="/trip/join" method="post">
+                <input type="text" name="join_code" placeholder="ENTER CODE" required
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; text-transform: uppercase; font-size: 1.2rem; letter-spacing: 2px; text-align: center;">
+                <button type="submit" class="btn"
+                    style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #00C9FF, #92FE9D);">Join
+                    Trip</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Trips List -->
+    <h2>Your Trips</h2>
+    {% if trips %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+        {% for trip in trips %}
+        <div class="glass-card" onclick="window.location='/trip/{{ trip.id }}'"
+            style="transition: all 0.3s ease; cursor: pointer;"
+            onmouseover="this.style.transform='translateY(-8px) scale(1.02)'; this.style.boxShadow='0 12px 40px rgba(108, 99, 255, 0.3)';"
+            onmouseout="this.style.transform='translateY(0) scale(1)'; this.style.boxShadow='none';">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 style="margin: 0; font-size: 1.4rem;">{{ trip.name }}</h3>
+                <span
+                    style="background: rgba(255,255,255,0.1); padding: 4px 8px; border-radius: 4px; font-family: monospace; font-size: 0.85rem;">{{
+                    trip.join_code }}</span>
+            </div>
+            <p style="color: #ccc; margin-bottom: 5px;">📍 {{ trip.destination }}</p>
+            <p style="color: #888; font-size: 0.9rem;">📅 {{ trip.start_date }} - {{ trip.end_date }}</p>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div style="text-align: center; color: #666; padding: 40px;">
+        <p>You haven't planned any trips yet. Create or join one above!</p>
+    </div>
+    {% endif %}
+
+</div>
+{% endblock %}

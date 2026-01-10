@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+
+{% block title %}Sign Up{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Visual Side -->
+        <div class="auth-visual">
+            <img src="/static/logo.jpg" alt="Gojo Logo" class="auth-logo">
+            <h2 class="auth-visual-title">Start Your Journey</h2>
+            <p class="auth-visual-subtitle">Join thousands of travelers planning their next adventure</p>
+        </div>
+
+        <!-- Form Side -->
+        <div class="auth-form-container">
+            <h1 class="auth-form-title">Create Account</h1>
+            <p class="auth-form-subtitle">Fill in your details to get started</p>
+
+            {% if error %}
+            <div class="alert alert-error">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="post" action="/register" data-validate>
+                <!-- Full Name Field -->
+                <div class="form-group">
+                    <div class="form-floating">
+                        <input type="text" id="full_name" name="full_name" class="form-control" placeholder=" " required
+                            autocomplete="name">
+                        <label for="full_name">Full Name</label>
+                    </div>
+                </div>
+
+                <!-- Email Field -->
+                <div class="form-group">
+                    <div class="form-floating">
+                        <input type="email" id="email" name="email" class="form-control" placeholder=" " required
+                            autocomplete="email">
+                        <label for="email">Email Address</label>
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-group">
+                    <div class="form-floating">
+                        <input type="password" id="password" name="password" class="form-control" placeholder=" "
+                            required autocomplete="new-password" minlength="8">
+                        <label for="password">Password</label>
+                    </div>
+                    <p class="form-help">Password must be at least 8 characters long</p>
+                </div>
+
+                <!-- Terms Checkbox -->
+                <div class="form-group">
+                    <label
+                        style="display: flex; align-items: start; gap: var(--spacing-sm); font-size: var(--font-size-sm); cursor: pointer;">
+                        <input type="checkbox" required style="margin-top: 4px; cursor: pointer;">
+                        <span>
+                            I agree to the <a href="#" style="color: var(--color-primary);">Terms of Service</a>
+                            and <a href="#" style="color: var(--color-primary);">Privacy Policy</a>
+                        </span>
+                    </label>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-lg btn-block">
+                    Create Account
+                </button>
+
+                <!-- Divider -->
+                <div style="text-align: center; margin: var(--spacing-xl) 0; position: relative;">
+                    <span
+                        style="background: white; padding: 0 var(--spacing-md); position: relative; z-index: 1; color: var(--color-neutral-gray-500); font-size: var(--font-size-sm);">
+                        or
+                    </span>
+                    <div
+                        style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--color-neutral-gray-200);">
+                    </div>
+                </div>
+
+                <!-- Sign In Link -->
+                <p style="text-align: center; color: var(--color-neutral-gray-600); margin: 0;">
+                    Already have an account?
+                    <a href="/login" style="color: var(--color-primary); font-weight: var(--font-weight-semibold);">Sign
+                        in</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Remove default page padding for auth pages */
+    .page-content {
+        padding: 0;
+    }
+
+    /* Hide navbar on auth pages */
+    .navbar {
+        display: none;
+    }
+
+    /* Hide footer on auth pages */
+    .footer {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Password strength indicator (optional enhancement)
+    const passwordInput = document.getElementById('password');
+    if (passwordInput) {
+        passwordInput.addEventListener('input', (e) => {
+            const password = e.target.value;
+            const strength = password.length >= 12 ? 'strong' : password.length >= 8 ? 'medium' : 'weak';
+            // Could add visual indicator here
+        });
+    }
+</script>
+{% endblock %}

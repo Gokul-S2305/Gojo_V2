@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="padding-top: 20px;">
+    <!-- Back Button & Export -->
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <a href="/dashboard" style="color: #6C63FF; text-decoration: none; display: inline-flex; align-items: center;">
+            <span style="font-size: 1.5rem; margin-right: 8px;">←</span> Back to Dashboard
+        </a>
+        <a href="/trip/{{ trip.id }}/export/pdf" class="btn"
+            style="background: linear-gradient(135deg, #FF6B6B, #EE5A6F); text-decoration: none;">
+            📄 Export PDF
+        </a>
+    </div>
+
+    <!-- Trip Header -->
+    <div class="glass-card"
+        style="margin-bottom: 30px; background: linear-gradient(135deg, rgba(108, 99, 255, 0.1), rgba(90, 82, 213, 0.1));">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
+            <div>
+                <h1 style="margin: 0 0 10px 0; font-size: 2.5rem;">{{ trip.name }}</h1>
+                <p style="color: #ccc; font-size: 1.2rem; margin: 0;">📍 {{ trip.destination }}</p>
+            </div>
+            <div style="text-align: right;">
+                <div
+                    style="background: rgba(255,255,255,0.1); padding: 12px 20px; border-radius: 12px; margin-bottom: 10px;">
+                    <p style="margin: 0; color: #888; font-size: 0.85rem;">Join Code</p>
+                    <p style="margin: 5px 0 0 0; font-family: monospace; font-size: 1.5rem; font-weight: 700; letter-spacing: 3px;"
+                        id="joinCode">{{ trip.join_code }}</p>
+                </div>
+                <button onclick="copyJoinCode()" class="btn"
+                    style="width: 100%; background: rgba(255,255,255,0.1); font-size: 0.9rem;">
+                    📋 Copy Code
+                </button>
+            </div>
+        </div>
+
+        <div
+            style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <div>
+                <p style="color: #888; margin: 0; font-size: 0.9rem;">Start Date</p>
+                <p style="margin: 5px 0 0 0; font-size: 1.1rem;">📅 {{ trip.start_date }}</p>
+            </div>
+            <div>
+                <p style="color: #888; margin: 0; font-size: 0.9rem;">End Date</p>
+                <p style="margin: 5px 0 0 0; font-size: 1.1rem;">📅 {{ trip.end_date }}</p>
+            </div>
+            <div>
+                <p style="color: #888; margin: 0; font-size: 0.9rem;">Duration</p>
+                <p style="margin: 5px 0 0 0; font-size: 1.1rem;">⏱️ {{ duration }} days</p>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div
+            style="display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
+            <a href="/trip/{{ trip.id }}/map" class="btn"
+                style="flex: 1; text-align: center; background: linear-gradient(135deg, #00C9FF, #92FE9D); text-decoration: none;">
+                🗺️ View Map & Places
+            </a>
+            <a href="/trip/{{ trip.id }}/gallery" class="btn"
+                style="flex: 1; text-align: center; background: linear-gradient(135deg, #FF6B9D, #C06C84); text-decoration: none;">
+                📸 Photo Gallery
+            </a>
+            <a href="/trip/{{ trip.id }}/chat" class="btn"
+                style="flex: 1; text-align: center; background: linear-gradient(135deg, #A29BFE, #6C5CE7); text-decoration: none;">
+                💬 Chat
+            </a>
+        </div>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
+
+        <!-- Left Column: Members -->
+        <div>
+            <div class="glass-card">
+                <h2 style="margin-top: 0;">Trip Members</h2>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    {% for member in members %}
+                    <div
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                        <div
+                            style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #6C63FF, #5a52d5); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem;">
+                            {{ member.full_name[0].upper() if member.full_name else member.email[0].upper() }}
+                        </div>
+                        <div style="flex: 1;">
+                            <p style="margin: 0; font-weight: 600;">{{ member.full_name or 'User' }}</p>
+                            <p style="margin: 0; color: #888; font-size: 0.85rem;">{{ member.email }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Budget & Expenses -->
+        <div>
+            <!-- Budget Summary -->
+            <div class="glass-card" style="margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h2 style="margin: 0;">Total Budget</h2>
+                    <p
+                        style="margin: 0; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #00C9FF, #92FE9D); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        ₹{{ "%.2f"|format(total_expenses) }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Add Expense Form -->
+            <div class="glass-card" style="margin-bottom: 20px;">
+                <h3 style="margin-top: 0;">Add Expense</h3>
+                <form action="/trip/{{ trip.id }}/expense" method="post"
+                    style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end;">
+                    <div>
+                        <input type="text" name="purpose" placeholder="Purpose (e.g., Hotel, Food)" required
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: white;">
+                    </div>
+                    <div>
+                        <input type="number" name="amount" placeholder="Amount" step="0.01" required
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: white;">
+                    </div>
+                    <button type="submit" class="btn" style="padding: 12px 24px;">
+                        ➕ Add
+                    </button>
+                </form>
+            </div>
+
+            <!-- Expenses List -->
+            <div class="glass-card">
+                <h3 style="margin-top: 0;">Expenses</h3>
+                {% if expenses %}
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
+                                <th style="text-align: left; padding: 12px; color: #888; font-weight: 600;">Purpose</th>
+                                <th style="text-align: right; padding: 12px; color: #888; font-weight: 600;">Amount</th>
+                                <th style="text-align: left; padding: 12px; color: #888; font-weight: 600;">Added By
+                                </th>
+                                <th style="text-align: left; padding: 12px; color: #888; font-weight: 600;">Date</th>
+                                <th style="text-align: center; padding: 12px; color: #888; font-weight: 600;">Action
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for expense in expenses %}
+                            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                <td style="padding: 12px;">{{ expense.purpose }}</td>
+                                <td style="padding: 12px; text-align: right; font-weight: 600; color: #00C9FF;">₹{{
+                                    "%.2f"|format(expense.amount) }}</td>
+                                <td style="padding: 12px; color: #ccc;">{{ expense.user.full_name or expense.user.email
+                                    }}</td>
+                                <td style="padding: 12px; color: #888; font-size: 0.9rem;">{{
+                                    expense.created_at.strftime('%b %d, %Y') if expense.created_at else 'N/A' }}</td>
+                                <td style="padding: 12px; text-align: center;">
+                                    {% if expense.user_id == user.id %}
+                                    <form action="/trip/{{ trip.id }}/expense/{{ expense.id }}/delete" method="post"
+                                        style="display: inline;" onsubmit="return confirm('Delete this expense?');">
+                                        <button type="submit"
+                                            style="background: none; border: none; color: #ff6b6b; cursor: pointer; font-size: 1.2rem;"
+                                            title="Delete">
+                                            🗑️
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div style="text-align: center; padding: 40px; color: #666;">
+                    <p>No expenses added yet. Add your first expense above!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function copyJoinCode() {
+        const code = document.getElementById('joinCode').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            // Show toast notification
+            showToast('Join code copied to clipboard!');
+        });
+    }
+
+    function showToast(message) {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.cssText = `
+        position: fixed;
+        bottom: 30px;
+        right: 30px;
+        background: linear-gradient(135deg, #6C63FF, #5a52d5);
+        color: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        z-index: 1000;
+        animation: slideIn 0.3s ease;
+    `;
+        document.body.appendChild(toast);
+
+        setTimeout(() => {
+            toast.style.animation = 'slideOut 0.3s ease';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
+    }
+
+    // Add animations
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes slideIn {
+        from { transform: translateX(400px); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes slideOut {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(400px); opacity: 0; }
+    }
+`;
+    document.head.appendChild(style);
+</script>
+{% endblock %}

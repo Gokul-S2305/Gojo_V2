@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <!-- Visual Side -->
+        <div class="auth-visual">
+            <img src="/static/logo.jpg" alt="Gojo Logo" class="auth-logo">
+            <h2 class="auth-visual-title">Welcome Back!</h2>
+            <p class="auth-visual-subtitle">Continue your journey with Gojo</p>
+        </div>
+
+        <!-- Form Side -->
+        <div class="auth-form-container">
+            <h1 class="auth-form-title">Sign In</h1>
+            <p class="auth-form-subtitle">Enter your credentials to access your account</p>
+
+            {% if error %}
+            <div class="alert alert-error">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="post" action="/login" data-validate>
+                <!-- Email Field -->
+                <div class="form-group">
+                    <div class="form-floating">
+                        <input type="email" id="email" name="email" class="form-control" placeholder=" " required
+                            autocomplete="email">
+                        <label for="email">Email Address</label>
+                    </div>
+                </div>
+
+                <!-- Password Field -->
+                <div class="form-group">
+                    <div class="form-floating">
+                        <input type="password" id="password" name="password" class="form-control" placeholder=" "
+                            required autocomplete="current-password">
+                        <label for="password">Password</label>
+                    </div>
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--spacing-sm);">
+                        <label
+                            style="display: flex; align-items: center; gap: var(--spacing-xs); font-size: var(--font-size-sm); cursor: pointer;">
+                            <input type="checkbox" name="remember" style="cursor: pointer;">
+                            <span>Remember me</span>
+                        </label>
+                        <a href="#" style="font-size: var(--font-size-sm); color: var(--color-primary);">Forgot
+                            password?</a>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary btn-lg btn-block">
+                    Sign In
+                </button>
+
+                <!-- Divider -->
+                <div style="text-align: center; margin: var(--spacing-xl) 0; position: relative;">
+                    <span
+                        style="background: white; padding: 0 var(--spacing-md); position: relative; z-index: 1; color: var(--color-neutral-gray-500); font-size: var(--font-size-sm);">
+                        or
+                    </span>
+                    <div
+                        style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--color-neutral-gray-200);">
+                    </div>
+                </div>
+
+                <!-- Sign Up Link -->
+                <p style="text-align: center; color: var(--color-neutral-gray-600); margin: 0;">
+                    Don't have an account?
+                    <a href="/register"
+                        style="color: var(--color-primary); font-weight: var(--font-weight-semibold);">Sign up</a>
+                </p>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Remove default page padding for auth pages */
+    .page-content {
+        padding: 0;
+    }
+
+    /* Hide navbar on auth pages */
+    .navbar {
+        display: none;
+    }
+
+    /* Hide footer on auth pages */
+    .footer {
+        display: none;
+    }
+</style>
+{% endblock %}

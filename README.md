@@ -1,5 +1,9 @@
 # Gojo Trip Planner
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+<br/>
+**Live Demo:** [https://gojo-trip-planner.onrender.com](https://gojo-trip-planner.onrender.com)
+
 Gojo Trip Planner is a comprehensive application designed to help you organize and manage your travels effortlessly. It offers two interfaces: a modern **FastAPI-based Web Application** and a feature-rich **PyQt5-based Desktop Application**.
 
 ## 🚀 Key Features
@@ -21,12 +25,14 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 
 ## 🛠️ Technology Stack
 
-- **Backend/Web**: FastAPI, SQLModel (SQLite), Jinja2 Templates
+- **Backend/Web**: FastAPI, Jinja2 Templates
+- **Database**: SQLModel (SQLite for local, PostgreSQL for production)
 - **Desktop UI**: PyQt5
 - **Mapping**: Folium
 - **PDF Generation**: ReportLab
 - **Real-time**: WebSockets
 - **Authentication**: Python-JOSE, Passlib (Bcrypt)
+- **Deployment**: Render
 
 ## ⚙️ Installation
 

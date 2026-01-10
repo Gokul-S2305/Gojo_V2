@@ -46,6 +46,19 @@ class Settings(BaseSettings):
     )
     
     @property
+    def database_url_resolved(self) -> str:
+        """
+        Fixes the database URL scheme for SQLAlchemy async engine.
+        Render provides 'postgresql://' but async engine needs 'postgresql+asyncpg://'
+        """
+        url = self.database_url
+        if url and url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql+asyncpg://", 1)
+        if url and url.startswith("postgresql://"):
+            return url.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return url
+    
+    @property
     def is_development(self) -> bool:
         """Check if running in development mode."""
         return self.environment.lower() == "development"

@@ -99,7 +99,7 @@
             <!-- Budget Summary -->
             <div class="glass-card" style="margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="margin: 0;">Total Budget</h2>
+                    <h2 style="margin: 0; color: #000;">Total Budget</h2>
                     <p
                         style="margin: 0; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #00C9FF, #92FE9D); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                         ₹{{ "%.2f"|format(total_expenses) }}
@@ -109,7 +109,7 @@
 
             <!-- Add Expense Form -->
             <div class="glass-card" style="margin-bottom: 20px;">
-                <h3 style="margin-top: 0;">Add Expense</h3>
+                <h3 style="margin-top: 0; color: #000;">Add Expense</h3>
                 <form action="/trip/{{ trip.id }}/expense" method="post"
                     style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end;">
                     <div>
@@ -128,30 +128,30 @@
 
             <!-- Expenses List -->
             <div class="glass-card">
-                <h3 style="margin-top: 0;">Expenses</h3>
+                <h3 style="margin-top: 0; color: #000;">Expenses</h3>
                 {% if expenses %}
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                <th style="text-align: left; padding: 12px; color: #888; font-weight: 600;">Purpose</th>
-                                <th style="text-align: right; padding: 12px; color: #888; font-weight: 600;">Amount</th>
-                                <th style="text-align: left; padding: 12px; color: #888; font-weight: 600;">Added By
+                                <th style="text-align: left; padding: 12px; color: #000; font-weight: 600;">Purpose</th>
+                                <th style="text-align: right; padding: 12px; color: #000; font-weight: 600;">Amount</th>
+                                <th style="text-align: left; padding: 12px; color: #000; font-weight: 600;">Added By
                                 </th>
-                                <th style="text-align: left; padding: 12px; color: #888; font-weight: 600;">Date</th>
-                                <th style="text-align: center; padding: 12px; color: #888; font-weight: 600;">Action
+                                <th style="text-align: left; padding: 12px; color: #000; font-weight: 600;">Date</th>
+                                <th style="text-align: center; padding: 12px; color: #000; font-weight: 600;">Action
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for expense in expenses %}
                             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 12px;">{{ expense.purpose }}</td>
+                                <td style="padding: 12px; color: #000;">{{ expense.purpose }}</td>
                                 <td style="padding: 12px; text-align: right; font-weight: 600; color: #00C9FF;">₹{{
                                     "%.2f"|format(expense.amount) }}</td>
-                                <td style="padding: 12px; color: #ccc;">{{ expense.user.full_name or expense.user.email
+                                <td style="padding: 12px; color: #000;">{{ expense.user.full_name or expense.user.email
                                     }}</td>
-                                <td style="padding: 12px; color: #888; font-size: 0.9rem;">{{
+                                <td style="padding: 12px; color: #000; font-size: 0.9rem;">{{
                                     expense.created_at.strftime('%b %d, %Y') if expense.created_at else 'N/A' }}</td>
                                 <td style="padding: 12px; text-align: center;">
                                     {% if expense.user_id == user.id %}
@@ -172,7 +172,7 @@
                 </div>
                 {% else %}
                 <div style="text-align: center; padding: 40px; color: #666;">
-                    <p>No expenses added yet. Add your first expense above!</p>
+                    <p style="color: #000;">No expenses added yet. Add your first expense above!</p>
                 </div>
                 {% endif %}
             </div>

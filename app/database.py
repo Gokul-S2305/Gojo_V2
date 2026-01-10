@@ -6,7 +6,7 @@ from app.config import settings
 
 # Create async engine with config-based settings
 engine = create_async_engine(
-    settings.database_url, 
+    settings.database_url_resolved, 
     echo=settings.database_echo,  # Only echo in development
     future=True,
     pool_pre_ping=True  # Verify connections before using

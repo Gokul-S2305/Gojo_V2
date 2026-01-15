@@ -4,7 +4,10 @@
 <div style="padding-top: 40px;">
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px;">
         <h1>Welcome, {{ user.full_name }}</h1>
-        <a href="/logout" class="btn" style="background: rgba(255,255,255,0.1); font-size: 0.9rem;">Logout</a>
+        <button onclick="toggleTheme()" class="btn" id="themeToggleBtn"
+            style="background: white; color: black; font-weight: 600; padding: 10px 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); transition: transform 0.2s; cursor: pointer;">
+            🌗 Theme
+        </button>
     </div>
 
     <!-- Actions -->
@@ -13,14 +16,16 @@
             <h3>Create a Trip</h3>
             <form action="/trip/create" method="post">
                 <input type="text" name="trip_name" placeholder="Trip Name" required
-                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none;">
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; color: black;">
                 <input type="text" name="destination" placeholder="Destination" required
-                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none;">
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; color: black;">
+                <input type="text" name="start_location" placeholder="Starting Point"
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; color: black;">
                 <div style="display: flex; gap: 10px;">
                     <input type="date" name="start_date" required
-                        style="flex: 1; padding: 10px; border-radius: 8px; border: none;">
+                        style="flex: 1; padding: 10px; border-radius: 8px; border: none; color: black;">
                     <input type="date" name="end_date" required
-                        style="flex: 1; padding: 10px; border-radius: 8px; border: none;">
+                        style="flex: 1; padding: 10px; border-radius: 8px; border: none; color: black;">
                 </div>
                 <button type="submit" class="btn" style="margin-top: 15px; width: 100%;">Create Trip</button>
             </form>
@@ -31,7 +36,7 @@
             <p style="color: #aaa; margin-bottom: 20px;">Enter the 6-character code shared by your friend.</p>
             <form action="/trip/join" method="post">
                 <input type="text" name="join_code" placeholder="ENTER CODE" required
-                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; text-transform: uppercase; font-size: 1.2rem; letter-spacing: 2px; text-align: center;">
+                    style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; text-transform: uppercase; font-size: 1.2rem; letter-spacing: 2px; text-align: center; color: black;">
                 <button type="submit" class="btn"
                     style="margin-top: 15px; width: 100%; background: linear-gradient(135deg, #00C9FF, #92FE9D);">Join
                     Trip</button>
@@ -66,4 +71,18 @@
     {% endif %}
 
 </div>
+</div>
+
+<script>
+    function toggleTheme() {
+        const html = document.documentElement;
+        if (html.getAttribute('data-theme') === 'dark') {
+            html.removeAttribute('data-theme');
+            localStorage.setItem('theme', 'light');
+        } else {
+            html.setAttribute('data-theme', 'dark');
+            localStorage.setItem('theme', 'dark');
+        }
+    }
+</script>
 {% endblock %}

@@ -9,7 +9,7 @@
                 style="color: #6C63FF; text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 10px;">
                 <span style="font-size: 1.5rem; margin-right: 8px;">←</span> Back to Trip
             </a>
-            <h1 style="margin: 10px 0;">📸 {{ trip.name }} - Photo Gallery</h1>
+            <h1 style="margin: 10px 0;">📸 {{ trip.name }} - Gallery</h1>
             <p style="color: #888; margin: 5px 0 0 0;">Share your trip memories with everyone</p>
         </div>
 
@@ -23,7 +23,7 @@
     <!-- Hidden Upload Form -->
     <form id="uploadForm" action="/trip/{{ trip.id }}/upload" method="post" enctype="multipart/form-data"
         style="display: none;">
-        <input type="file" id="photoUpload" name="photo" accept="image/*"
+        <input type="file" id="photoUpload" name="photo" accept="image/*,video/*"
             onchange="document.getElementById('uploadForm').submit()">
     </form>
 
@@ -35,7 +35,7 @@
                     shared</span>
             </div>
             <div style="color: #888; font-size: 0.9rem;">
-                Supported formats: JPG, PNG, GIF, WebP
+                Supported formats: Images & Videos
             </div>
         </div>
     </div>
@@ -49,9 +49,14 @@
             onmouseover="this.querySelector('.photo-overlay').style.opacity='1';"
             onmouseout="this.querySelector('.photo-overlay').style.opacity='0';">
 
-            <!-- Photo Image -->
+            <!-- Photo/Video Display -->
+            {% if photo.media_type == 'video' %}
+            <video src="/uploads/{{ trip.id }}/{{ photo.filename }}" controls
+                style="width: 100%; display: block; border-radius: 16px;"></video>
+            {% else %}
             <img src="/uploads/{{ trip.id }}/{{ photo.filename }}" alt="Trip photo"
                 style="width: 100%; display: block; border-radius: 16px;" loading="lazy">
+            {% endif %}
 
             <!-- Overlay with Info -->
             <div class="photo-overlay"
@@ -77,6 +82,12 @@
                     <a href="/uploads/{{ trip.id }}/{{ photo.filename }}" target="_blank"
                         style="background: rgba(255,255,255,0.2); padding: 8px 16px; border-radius: 8px; color: white; text-decoration: none; font-size: 0.9rem; backdrop-filter: blur(10px);">
                         🔍 View
+                    </a>
+
+                    <!-- Download -->
+                    <a href="/uploads/{{ trip.id }}/{{ photo.filename }}" download
+                        style="background: rgba(0, 201, 255, 0.4); padding: 8px 16px; border-radius: 8px; color: white; text-decoration: none; font-size: 0.9rem; backdrop-filter: blur(10px);">
+                        ⬇️
                     </a>
 
                     <!-- Delete (only for uploader) -->

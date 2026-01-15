@@ -88,7 +88,7 @@ async def upload_photo(
         return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
     
     # Validate file type
-    allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp"}
+    allowed_extensions = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".mp4", ".mov", ".webm"}
     file_ext = Path(photo.filename).suffix.lower()
     
     if file_ext not in allowed_extensions:
@@ -108,7 +108,8 @@ async def upload_photo(
     new_photo = Photo(
         trip_id=trip_id,
         user_id=user.id,
-        filename=unique_filename
+        filename=unique_filename,
+        media_type="video" if file_ext in {".mp4", ".mov", ".webm"} else "image"
     )
     session.add(new_photo)
     await session.commit()

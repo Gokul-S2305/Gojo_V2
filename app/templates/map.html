@@ -1,153 +1,94 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="padding-top: 20px;">
-    <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-        <div>
+<div style="height: calc(100vh - 80px); display: flex;">
+    <!-- Sidebar for Suggestions -->
+    <div
+        style="width: 350px; background: #1a1a2e; border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; overflow-y: auto;">
+        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
             <a href="/trip/{{ trip.id }}"
-                style="color: #6C63FF; text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 10px;">
-                <span style="font-size: 1.5rem; margin-right: 8px;">←</span> Back to Trip
+                style="color: #6C63FF; text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 15px;">
+                ← Back to Trip
             </a>
-            <h1 style="margin: 10px 0;">🗺️ {{ trip.destination }} - Places to Visit</h1>
+            <h2 style="margin: 0;">{{ trip.destination }}</h2>
+            <p style="color: #888; margin: 5px 0 0 0;">Interactive Map & Guide</p>
+        </div>
+
+        <!-- Hotels -->
+        <div style="padding: 20px;">
+            <h3 style="color: #00C9FF; margin-top: 0;">🏨 Top Stays</h3>
+            {% if recommendations and recommendations.hotels %}
+            {% for hotel in recommendations.hotels %}
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <h4 style="margin: 0;">{{ hotel.name }}</h4>
+                    <span
+                        style="background: #FFC06C; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem;">{{
+                        hotel.rating }} ★</span>
+                </div>
+                <p style="color: #ccc; font-size: 0.9rem; margin: 0 0 5px 0;">Price: {{ hotel.price }}</p>
+                <p style="color: #888; font-size: 0.85rem; font-style: italic; margin: 0;">"{{ hotel.sentiment }}"</p>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="color: #666;">No hotel suggestions available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Restaurants -->
+        <div style="padding: 0 20px 20px 20px;">
+            <h3 style="color: #FF6B9D; margin-top: 0;">🍽️ Top Eats</h3>
+            {% if recommendations and recommendations.restaurants %}
+            {% for place in recommendations.restaurants %}
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <h4 style="margin: 0;">{{ place.name }}</h4>
+                    <span
+                        style="background: #FFC06C; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem;">{{
+                        place.rating }} ★</span>
+                </div>
+                <p style="color: #ccc; font-size: 0.9rem; margin: 0 0 5px 0;">Cuisine: {{ place.cuisine }}</p>
+                <p style="color: #888; font-size: 0.85rem; font-style: italic; margin: 0;">"{{ place.sentiment }}"</p>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="color: #666;">No restaurant suggestions available.</p>
+            {% endif %}
+        </div>
+
+        <!-- Attractions -->
+        <div style="padding: 0 20px 20px 20px;">
+            <h3 style="color: #92FE9D; margin-top: 0;">Attractions</h3>
+            {% if recommendations and recommendations.attractions %}
+            {% for place in recommendations.attractions %}
+            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <h4 style="margin: 0;">{{ place.name }}</h4>
+                </div>
+                <p style="color: #ccc; font-size: 0.9rem; margin: 0 0 5px 0;">Type: {{ place.type }}</p>
+                <p style="color: #888; font-size: 0.85rem; font-style: italic; margin: 0;">"{{ place.sentiment }}"</p>
+            </div>
+            {% endfor %}
+            {% else %}
+            <p style="color: #666;">No attraction suggestions available.</p>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Two Column Layout -->
-    <div style="display: grid; grid-template-columns: 350px 1fr; gap: 20px; height: calc(100vh - 200px);">
+    <!-- Map Container -->
+    <div style="flex: 1; position: relative;">
+        {{ map_html | safe }}
 
-        <!-- Left Sidebar: Places List -->
-        <div style="overflow-y: auto;">
-            <div class="glass-card" style="position: sticky; top: 0;">
-                <h2 style="margin-top: 0;">Famous Attractions</h2>
-
-                {% if places %}
-                <div style="display: flex; flex-direction: column; gap: 12px;">
-                    {% for place in places %}
-                    <div class="glass-card"
-                        style="padding: 16px; background: rgba(255,255,255,0.03); cursor: pointer; transition: all 0.2s;"
-                        onmouseover="this.style.background='rgba(108, 99, 255, 0.1)'; this.style.transform='translateX(5px)';"
-                        onmouseout="this.style.background='rgba(255,255,255,0.03)'; this.style.transform='translateX(0)';">
-
-                        <div style="display: flex; align-items: start; gap: 12px;">
-                            <!-- Icon based on type -->
-                            <div style="font-size: 1.8rem; min-width: 40px; text-align: center;">
-                                {% if place.type == "Beach" %}🏖️
-                                {% elif place.type == "Historical" %}🏛️
-                                {% elif place.type == "Religious" %}🕌
-                                {% elif place.type == "Nature" %}🌳
-                                {% elif place.type == "Monument" %}🗿
-                                {% elif place.type == "Scenic" %}🌅
-                                {% else %}📍
-                                {% endif %}
-                            </div>
-
-                            <div style="flex: 1;">
-                                <h4 style="margin: 0 0 5px 0; font-size: 1.1rem;">{{ place.name }}</h4>
-                                <p style="margin: 0; color: #888; font-size: 0.9rem;">
-                                    <span
-                                        style="background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px; font-size: 0.8rem;">
-                                        {{ place.type }}
-                                    </span>
-                                </p>
-                                <p style="margin: 5px 0 0 0; color: #aaa; font-size: 0.85rem;">
-                                    📍 {{ "%.4f"|format(place.lat) }}, {{ "%.4f"|format(place.lng) }}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-
-                <!-- Legend -->
-                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <h4 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #888;">Map Legend</h4>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem;">
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 12px; height: 12px; background: #d63031; border-radius: 50%;"></div>
-                            <span>Destination</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 12px; height: 12px; background: #0984e3; border-radius: 50%;"></div>
-                            <span>Beach</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 12px; height: 12px; background: #e67e22; border-radius: 50%;"></div>
-                            <span>Historical</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 12px; height: 12px; background: #8e44ad; border-radius: 50%;"></div>
-                            <span>Religious</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 12px; height: 12px; background: #27ae60; border-radius: 50%;"></div>
-                            <span>Nature</span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 6px;">
-                            <div style="width: 12px; height: 12px; background: #74b9ff; border-radius: 50%;"></div>
-                            <span>Scenic</span>
-                        </div>
-                    </div>
-                </div>
-
-                {% else %}
-                <div style="text-align: center; padding: 40px 20px; color: #666;">
-                    <p style="font-size: 2rem; margin-bottom: 10px;">🗺️</p>
-                    <p>No famous places data available for this destination yet.</p>
-                    <p style="font-size: 0.9rem; color: #888; margin-top: 10px;">
-                        The map shows your destination marker.
-                    </p>
-                </div>
-                {% endif %}
-            </div>
-        </div>
-
-        <!-- Right: Interactive Map -->
-        <div style="position: relative;">
-            <div class="glass-card" style="padding: 0; height: 100%; overflow: hidden; border-radius: 16px;">
-                <!-- Map container -->
-                <div style="width: 100%; height: 100%; border-radius: 16px; overflow: hidden;">
-                    {{ map_html|safe }}
-                </div>
-            </div>
-
-            <!-- Floating Info Card -->
-            <div style="position: absolute; top: 20px; left: 20px; z-index: 1000;">
-                <div class="glass-card" style="padding: 16px; min-width: 250px;">
-                    <h3 style="margin: 0 0 10px 0; font-size: 1.2rem;">{{ trip.name }}</h3>
-                    <p style="margin: 0; color: #ccc;">📍 {{ trip.destination }}</p>
-                    <p style="margin: 5px 0 0 0; color: #888; font-size: 0.9rem;">
-                        📅 {{ trip.start_date }} - {{ trip.end_date }}
-                    </p>
-                </div>
+        <!-- Places Toggle Overlay (Optional Enhancement) -->
+        <div
+            style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 12px; backdrop-filter: blur(10px); z-index: 999;">
+            <p style="margin: 0 0 10px 0; font-weight: bold;">Legend</p>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.8rem;">
+                <span style="color: red;">🚩 Destination</span>
+                <span style="color: green;">▶️ Start</span>
+                <span style="color: blue;">➖ Route</span>
             </div>
         </div>
     </div>
 </div>
-
-<style>
-    /* Custom scrollbar for places list */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: rgba(255, 255, 255, 0.05);
-        border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: rgba(108, 99, 255, 0.5);
-        border-radius: 4px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: rgba(108, 99, 255, 0.7);
-    }
-
-    /* Override Folium map styles to match dark theme */
-    .folium-map {
-        border-radius: 16px !important;
-    }
-</style>
 {% endblock %}

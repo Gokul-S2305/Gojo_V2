@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     
     # Frontend
     site_url: str = "http://127.0.0.1:8000"
+
+    # AI Integration
+    gemini_api_key: str = "AIzaSyBoLUPoyCVOxGPXdgxgeIEw8aelhwW8_3U"  # Default provided by user
     
     model_config = SettingsConfigDict(
         env_file=".env",

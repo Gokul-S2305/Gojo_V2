@@ -11,8 +11,10 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 ### 🌐 Web Application
 - **Authentication**: Secure user login and registration.
 - **Dashboard**: Overview of upcoming trips and recent activities.
-- **Interactive Maps**: Visualize your trip routes and locations (powered by Folium).
-- **Photo Gallery**: Upload and manage memories from your trips.
+- **Dashboard**: Overview of upcoming trips and recent activities.
+- **Smart AI Maps**: Interactive maps with OSRM routing and Gemini-powered travel recommendations.
+- **Dark Mode**: Toggle between light and dark themes for comfortable viewing.
+- **Gallery**: Upload and download photos and videos to share memories.
 - **Real-time Chat**: Coordinate with fellow travelers instantly.
 - **PDF Export**: Generate professional trip summaries for offline use.
 

@@ -19,7 +19,15 @@
         <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 20px;">
             <div>
                 <h1 style="margin: 0 0 10px 0; font-size: 2.5rem;">{{ trip.name }}</h1>
-                <p style="color: #ccc; font-size: 1.2rem; margin: 0;">📍 {{ trip.destination }}</p>
+                <div style="display: flex; flex-direction: column; gap: 5px;">
+                    <p style="color: #ccc; font-size: 1.2rem; margin: 0;">🟢 {{ trip.start_location or 'Start' }}</p>
+                    <p style="color: #ccc; font-size: 1.2rem; margin: 0; padding-left: 5px;">⬇️</p>
+                    <p style="color: #ccc; font-size: 1.2rem; margin: 0;">📍 {{ trip.destination }}</p>
+                </div>
+                {% if trip.estimated_budget %}
+                <p style="color: #00C9FF; font-size: 1rem; margin: 5px 0 0 0;">💰 Est. Budget: ₹{{
+                    "%.2f"|format(trip.estimated_budget) }}</p>
+                {% endif %}
             </div>
             <div style="text-align: right;">
                 <div
@@ -56,11 +64,11 @@
             style="display: flex; gap: 10px; margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
             <a href="/trip/{{ trip.id }}/map" class="btn"
                 style="flex: 1; text-align: center; background: linear-gradient(135deg, #00C9FF, #92FE9D); text-decoration: none;">
-                🗺️ View Map & Places
+                🗺️ View Smart Map
             </a>
             <a href="/trip/{{ trip.id }}/gallery" class="btn"
                 style="flex: 1; text-align: center; background: linear-gradient(135deg, #FF6B9D, #C06C84); text-decoration: none;">
-                📸 Photo Gallery
+                📸 Gallery
             </a>
             <a href="/trip/{{ trip.id }}/chat" class="btn"
                 style="flex: 1; text-align: center; background: linear-gradient(135deg, #A29BFE, #6C5CE7); text-decoration: none;">
@@ -73,9 +81,84 @@
     <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 30px;">
 
         <!-- Left Column: Members -->
+        <!-- Left Column: Itinerary & Members -->
         <div>
+            <!-- Itinerary Section -->
+            <div class="glass-card" style="margin-bottom: 30px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0;">Itinerary</h2>
+                    {% if is_organizer %}
+                    <button onclick="document.getElementById('addItineraryModal').style.display='flex'" class="btn"
+                        style="padding: 8px 16px; font-size: 0.9rem;">+ Add Item</button>
+                    {% endif %}
+                </div>
+
+                {% if itinerary %}
+                <div style="position: relative; padding-left: 20px; border-left: 2px solid rgba(255,255,255,0.1);">
+                    {% for item in itinerary %}
+                    <div style="margin-bottom: 20px; position: relative;">
+                        <!-- Dot -->
+                        <div
+                            style="position: absolute; left: -27px; top: 0; width: 12px; height: 12px; background: #6C63FF; border-radius: 50%; border: 2px solid #1a1a2e;">
+                        </div>
+
+                        <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px;">
+                            <div style="display: flex; justify-content: space-between;">
+                                <span style="font-weight: bold; color: #00C9FF;">Day {{ item.day_number }} - {{
+                                    item.time }}</span>
+                                {% if is_organizer %}
+                                <form action="/trip/{{ trip.id }}/itinerary/{{ item.id }}/delete" method="post"
+                                    style="display: inline;" onsubmit="return confirm('Delete this item?');">
+                                    <button type="submit"
+                                        style="background: none; border: none; color: #ff6b6b; cursor: pointer;">✕</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                            <h4 style="margin: 5px 0;">{{ item.activity }}</h4>
+                            {% if item.location %}
+                            <p style="margin: 0; color: #ccc; font-size: 0.9rem;">📍 {{ item.location }}</p>
+                            {% endif %}
+                            {% if item.description %}
+                            <p style="margin: 5px 0 0 0; color: #888; font-size: 0.9rem;">{{ item.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p style="color: #666; text-align: center;">No itinerary planned yet.</p>
+                {% endif %}
+            </div>
+
+            <!-- Members Section -->
             <div class="glass-card">
                 <h2 style="margin-top: 0;">Trip Members</h2>
+
+                <!-- Organizers -->
+                {% if organizers %}
+                <h4 style="color: #00C9FF; margin-bottom: 10px;">Organizers</h4>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+                    {% for member in organizers %}
+                    <div
+                        style="display: flex; align-items: center; gap: 12px; padding: 10px; background: rgba(0, 201, 255, 0.1); border-radius: 8px; border: 1px solid rgba(0, 201, 255, 0.2);">
+                        <div
+                            style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #00C9FF, #92FE9D); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; color: #000;">
+                            {{ member.full_name[0].upper() if member.full_name else member.email[0].upper() }}
+                        </div>
+                        <div style="flex: 1;">
+                            <p style="margin: 0; font-weight: 600;">{{ member.full_name or 'User' }} <span
+                                    style="font-size: 0.8rem; background: #00C9FF; color: black; padding: 2px 6px; border-radius: 4px; margin-left: 5px;">ORG</span>
+                            </p>
+                            <p style="margin: 0; color: #888; font-size: 0.85rem;">{{ member.email }}</p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Regular Members -->
+                {% if members %}
+                <h4 style="color: #888; margin-bottom: 10px;">Members</h4>
                 <div style="display: flex; flex-direction: column; gap: 12px;">
                     {% for member in members %}
                     <div
@@ -91,6 +174,7 @@
                     </div>
                     {% endfor %}
                 </div>
+                {% endif %}
             </div>
         </div>
 
@@ -177,6 +261,88 @@
                 {% endif %}
             </div>
         </div>
+    </div>
+
+    <!-- Smart Suggestions Section -->
+    <div style="margin-top: 40px;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+            <h2 style="margin: 0;">✨ AI Smart Suggestions</h2>
+            <span
+                style="background: linear-gradient(135deg, #FF6B9D, #FFC06C); padding: 4px 12px; border-radius: 20px; color: white; font-size: 0.8em; font-weight: bold;">NEW</span>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <!-- Recommended Stays -->
+            <div class="glass-card">
+                <h3 style="margin-top: 0; margin-bottom: 20px;">🏨 Recommended Stays</h3>
+                <div id="hotelRecommendations">
+                    <div style="text-align: center; padding: 20px;">
+                        <p style="color: #ccc; margin-bottom: 15px;">Explore top-rated stays with sentiment analysis.
+                        </p>
+                        <a href="/trip/{{ trip.id }}/map" class="btn" style="background: rgba(255,255,255,0.1);">View
+                            Recommendations on Map</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recommended Eats -->
+            <div class="glass-card">
+                <h3 style="margin-top: 0; margin-bottom: 20px;">🍽️ Places to Eat</h3>
+                <div id="foodRecommendations">
+                    <div style="text-align: center; padding: 20px;">
+                        <p style="color: #ccc; margin-bottom: 15px;">Discover highly rated restaurants and cafes.</p>
+                        <a href="/trip/{{ trip.id }}/map" class="btn" style="background: rgba(255,255,255,0.1);">View
+                            Recommendations on Map</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        // Fetch Suggestions from Map API endpoint (Client-side fetch for dynamic feel)
+        // Alternatively, we can pass them from backend. 
+        // For now, let's assume we view them on the Map page or link to Map page for details.
+        // Actually, let's replace the loading text with a link to the Map page where detailed suggestions live.
+
+        document.getElementById('hotelRecommendations').innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <p style="color: #ccc; margin-bottom: 15px;">Explore top-rated stays with sentiment analysis.</p>
+                <a href="/trip/{{ trip.id }}/map" class="btn" style="background: rgba(255,255,255,0.1);">View Recommendations on Map</a>
+            </div>
+        `;
+
+        document.getElementById('foodRecommendations').innerHTML = `
+            <div style="text-align: center; padding: 20px;">
+                <p style="color: #ccc; margin-bottom: 15px;">Discover highly rated restaurants and cafes.</p>
+                <a href="/trip/{{ trip.id }}/map" class="btn" style="background: rgba(255,255,255,0.1);">View Recommendations on Map</a>
+            </div>
+        `;
+    </script>
+</div>
+
+<!-- Add Itinerary Modal -->
+<div id="addItineraryModal"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; justify-content: center; align-items: center;">
+    <div class="glass-card" style="width: 100%; max-width: 500px; position: relative;">
+        <button onclick="document.getElementById('addItineraryModal').style.display='none'"
+            style="position: absolute; right: 20px; top: 20px; background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;">✕</button>
+        <h2>Add Itinerary Item</h2>
+        <form action="/trip/{{ trip.id }}/itinerary/add" method="post">
+            <input type="number" name="day_number" placeholder="Day Number (e.g., 1)" required
+                style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; color: black;">
+            <input type="time" name="time" required
+                style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; color: black;">
+            <input type="text" name="activity" placeholder="Activity Name" required
+                style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; color: black;">
+            <input type="text" name="location" placeholder="Location Name"
+                style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; color: black;">
+            <textarea name="description" placeholder="Description / Route Details" rows="3"
+                style="width: 100%; margin-bottom: 10px; padding: 10px; border-radius: 8px; border: none; resize: vertical; color: black;"></textarea>
+            <button type="submit" class="btn" style="width: 100%;">Add Item</button>
+        </form>
     </div>
 </div>
 

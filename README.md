@@ -10,8 +10,7 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 
 ### 🌐 Web Application
 - **Authentication**: Secure user login and registration.
-- **Dashboard**: Overview of upcoming trips and recent activities.
-- **Dashboard**: Overview of upcoming trips and recent activities.
+- **Dashboard**: Overview of upcoming trips, recent activities, and itinerary management.
 - **Smart AI Maps**: Interactive maps with OSRM routing and Gemini-powered travel recommendations.
 - **Dark Mode**: Toggle between light and dark themes for comfortable viewing.
 - **Gallery**: Upload and download photos and videos to share memories.
@@ -41,7 +40,7 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 1. **Clone the repository**:
    ```bash
    git clone <repository-url>
-   cd gojo_1
+   cd Gojo_V2
    ```
 
 2. **Install dependencies**:

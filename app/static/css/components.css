@@ -227,6 +227,20 @@
     color: var(--color-neutral-gray-400);
 }
 
+/* Enhanced placeholder styling for dark theme */
+input::placeholder,
+textarea::placeholder {
+    color: var(--color-neutral-gray-400);
+    opacity: 0.8;
+}
+
+[data-theme="dark"] input::placeholder,
+[data-theme="dark"] textarea::placeholder {
+    color: var(--color-neutral-gray-500);
+    opacity: 0.9;
+}
+
+
 .form-control:disabled {
     background-color: var(--color-neutral-gray-100);
     cursor: not-allowed;

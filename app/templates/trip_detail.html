@@ -183,9 +183,9 @@
             <!-- Budget Summary -->
             <div class="glass-card" style="margin-bottom: 20px;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <h2 style="margin: 0; color: #000;">Total Budget</h2>
+                    <h2 style="margin: 0; color: var(--color-neutral-gray-900);">Total Budget</h2>
                     <p
-                        style="margin: 0; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #00C9FF, #92FE9D); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                        style="margin: 0; font-size: 2rem; font-weight: 700; background: linear-gradient(135deg, #00C9FF, #92FE9D); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
                         ₹{{ "%.2f"|format(total_expenses) }}
                     </p>
                 </div>
@@ -193,16 +193,20 @@
 
             <!-- Add Expense Form -->
             <div class="glass-card" style="margin-bottom: 20px;">
-                <h3 style="margin-top: 0; color: #000;">Add Expense</h3>
+                <h3 style="margin-top: 0; color: var(--color-neutral-gray-900);">Add Expense</h3>
                 <form action="/trip/{{ trip.id }}/expense" method="post"
                     style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 10px; align-items: end;">
                     <div>
                         <input type="text" name="purpose" placeholder="Purpose (e.g., Hotel, Food)" required
-                            style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: white;">
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: var(--color-neutral-gray-900); transition: all 0.3s ease;"
+                            onfocus="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='#00C9FF';"
+                            onblur="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='rgba(255,255,255,0.2)';">
                     </div>
                     <div>
                         <input type="number" name="amount" placeholder="Amount" step="0.01" required
-                            style="width: 100%; padding: 12px; border-radius: 8px; border: none; background: rgba(255,255,255,0.1); color: white;">
+                            style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: var(--color-neutral-gray-900); transition: all 0.3s ease;"
+                            onfocus="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='#00C9FF';"
+                            onblur="this.style.background='rgba(255,255,255,0.08)'; this.style.borderColor='rgba(255,255,255,0.2)';">
                     </div>
                     <button type="submit" class="btn" style="padding: 12px 24px;">
                         ➕ Add
@@ -212,30 +216,42 @@
 
             <!-- Expenses List -->
             <div class="glass-card">
-                <h3 style="margin-top: 0; color: #000;">Expenses</h3>
+                <h3 style="margin-top: 0; color: var(--color-neutral-gray-900);">Expenses</h3>
                 {% if expenses %}
                 <div style="overflow-x: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
                             <tr style="border-bottom: 1px solid rgba(255,255,255,0.1);">
-                                <th style="text-align: left; padding: 12px; color: #000; font-weight: 600;">Purpose</th>
-                                <th style="text-align: right; padding: 12px; color: #000; font-weight: 600;">Amount</th>
-                                <th style="text-align: left; padding: 12px; color: #000; font-weight: 600;">Added By
+                                <th
+                                    style="text-align: left; padding: 12px; color: var(--color-neutral-gray-900); font-weight: 600;">
+                                    Purpose</th>
+                                <th
+                                    style="text-align: right; padding: 12px; color: var(--color-neutral-gray-900); font-weight: 600;">
+                                    Amount</th>
+                                <th
+                                    style="text-align: left; padding: 12px; color: var(--color-neutral-gray-900); font-weight: 600;">
+                                    Added By
                                 </th>
-                                <th style="text-align: left; padding: 12px; color: #000; font-weight: 600;">Date</th>
-                                <th style="text-align: center; padding: 12px; color: #000; font-weight: 600;">Action
+                                <th
+                                    style="text-align: left; padding: 12px; color: var(--color-neutral-gray-900); font-weight: 600;">
+                                    Date</th>
+                                <th
+                                    style="text-align: center; padding: 12px; color: var(--color-neutral-gray-900); font-weight: 600;">
+                                    Action
                                 </th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for expense in expenses %}
                             <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                <td style="padding: 12px; color: #000;">{{ expense.purpose }}</td>
+                                <td style="padding: 12px; color: var(--color-neutral-gray-800);">{{ expense.purpose }}
+                                </td>
                                 <td style="padding: 12px; text-align: right; font-weight: 600; color: #00C9FF;">₹{{
                                     "%.2f"|format(expense.amount) }}</td>
-                                <td style="padding: 12px; color: #000;">{{ expense.user.full_name or expense.user.email
+                                <td style="padding: 12px; color: var(--color-neutral-gray-800);">{{
+                                    expense.user.full_name or expense.user.email
                                     }}</td>
-                                <td style="padding: 12px; color: #000; font-size: 0.9rem;">{{
+                                <td style="padding: 12px; color: var(--color-neutral-gray-700); font-size: 0.9rem;">{{
                                     expense.created_at.strftime('%b %d, %Y') if expense.created_at else 'N/A' }}</td>
                                 <td style="padding: 12px; text-align: center;">
                                     {% if expense.user_id == user.id %}
@@ -255,8 +271,9 @@
                     </table>
                 </div>
                 {% else %}
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <p style="color: #000;">No expenses added yet. Add your first expense above!</p>
+                <div style="text-align: center; padding: 40px; color: var(--color-neutral-gray-500);">
+                    <p style="color: var(--color-neutral-gray-700);">No expenses added yet. Add your first expense
+                        above!</p>
                 </div>
                 {% endif %}
             </div>

@@ -1,6 +1,6 @@
 # Gojo Trip Planner
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
+
 <br/>
 **Live Demo:** [https://gojo-trip-planner.onrender.com](https://gojo-trip-planner.onrender.com)
 

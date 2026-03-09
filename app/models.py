@@ -11,8 +11,9 @@ class TripUserLink(SQLModel, table=True):
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True)
-    password_hash: str
+    password_hash: Optional[str] = None
     full_name: Optional[str] = None
+    drive_connected: bool = Field(default=False)
     
     trips: List["Trip"] = Relationship(back_populates="users", link_model=TripUserLink)
     expenses: List["Expense"] = Relationship(back_populates="user")
@@ -28,6 +29,7 @@ class Trip(SQLModel, table=True):
     start_location: Optional[str] = None
     estimated_budget: Optional[float] = None
     join_code: str = Field(index=True, unique=True)
+    drive_folder_id: Optional[str] = None
     
     users: List[User] = Relationship(back_populates="trips", link_model=TripUserLink)
     expenses: List["Expense"] = Relationship(back_populates="trip")

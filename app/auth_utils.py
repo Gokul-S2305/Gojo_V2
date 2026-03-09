@@ -5,9 +5,23 @@ from typing import Optional
 import logging
 
 from app.config import settings
+from authlib.integrations.starlette_client import OAuth
 
 # Configure logging
 logger = logging.getLogger(__name__)
+
+# Configure OAuth
+oauth = OAuth()
+oauth.register(
+    name='google',
+    client_id=settings.google_client_id,
+    client_secret=settings.google_client_secret,
+    server_metadata_url=settings.google_discovery_url,
+    client_kwargs={
+        'scope': 'openid email profile https://www.googleapis.com/auth/drive.file',
+        'timeout': 10.0
+    }
+)
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a plain password against a hashed password."""

@@ -18,6 +18,30 @@ templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates"
 UPLOADS_DIR = Path(__file__).parent.parent.parent / "uploads"
 UPLOADS_DIR.mkdir(exist_ok=True)
 
+@router.get("/gallery", response_class=HTMLResponse)
+async def gallery_root(
+    request: Request,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    if not user:
+        return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
+    
+    # Get latest trip for this user
+    statement = select(Trip).join(TripUserLink).where(TripUserLink.user_id == user.id).order_by(Trip.id.desc()).limit(1)
+    result = await session.execute(statement)
+    trip = result.scalar_one_or_none()
+    
+    if trip:
+        return await trip_gallery(request, trip.id, user, session)
+    
+    return templates.TemplateResponse("gallery.html", {
+        "request": request,
+        "user": user,
+        "trip": None,
+        "photos": []
+    })
+
 def get_trip_upload_dir(trip_id: int) -> Path:
     """Get or create upload directory for a trip."""
     trip_dir = UPLOADS_DIR / str(trip_id)
@@ -113,6 +137,17 @@ async def upload_photo(
     )
     session.add(new_photo)
     await session.commit()
+    
+    # Google Drive Sync
+    if user.drive_connected and trip.drive_folder_id:
+        google_access_token = request.session.get('google_access_token')
+        if google_access_token:
+            try:
+                from app.drive_service import get_drive_service, upload_file_to_drive
+                service = get_drive_service(google_access_token)
+                await upload_file_to_drive(service, file_path, trip.drive_folder_id, new_photo.media_type)
+            except Exception as e:
+                print(f"Drive upload failed: {e}")
     
     return RedirectResponse(f"/trip/{trip_id}/gallery", status_code=status.HTTP_302_FOUND)
 

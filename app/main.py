@@ -2,8 +2,13 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pathlib import Path
+from starlette.middleware.sessions import SessionMiddleware
+from app.config import settings
 
 app = FastAPI(title="Gojo Trip Planner")
+
+# Add Session Middleware for OAuth2
+app.add_middleware(SessionMiddleware, secret_key=settings.secret_key)
 
 # Mount static files
 static_path = Path(__file__).parent / "static"

@@ -83,12 +83,26 @@ async def create_trip(
         estimated_budget=estimated_budget,
         join_code=join_code
     )
+    
+    # Google Drive Folder Creation
+    if user.drive_connected:
+        google_access_token = request.session.get('google_access_token')
+        if google_access_token:
+            try:
+                from app.drive_service import get_drive_service, find_or_create_parent_folder, create_trip_folder
+                service = get_drive_service(google_access_token)
+                parent_id = await find_or_create_parent_folder(service)
+                folder_id = await create_trip_folder(service, trip_name, parent_id)
+                new_trip.drive_folder_id = folder_id
+            except Exception as e:
+                # Log error but don't fail trip creation
+                print(f"Drive folder creation failed: {e}")
+    
     session.add(new_trip)
     await session.commit()
     await session.refresh(new_trip)
     
     # Link user to trip
-    # Link user to trip as Organizer
     link = TripUserLink(trip_id=new_trip.id, user_id=user.id, role="organizer")
     session.add(link)
     await session.commit()

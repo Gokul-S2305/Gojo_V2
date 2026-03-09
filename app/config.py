@@ -41,6 +41,13 @@ class Settings(BaseSettings):
     # AI Integration
     gemini_api_key: str = ""  # Loaded from .env
     
+    # Google OAuth
+    google_client_id: str = ""
+    google_client_secret: str = ""
+    google_discovery_url: str = "https://accounts.google.com/.well-known/openid-configuration"
+    google_project_id: str = ""
+    google_project_no: str = ""
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

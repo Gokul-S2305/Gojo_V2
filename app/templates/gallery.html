@@ -5,11 +5,15 @@
     <!-- Header -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
         <div>
+            {% if trip %}
             <a href="/trip/{{ trip.id }}"
                 style="color: #6C63FF; text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 10px;">
                 <span style="font-size: 1.5rem; margin-right: 8px;">←</span> Back to Trip
             </a>
             <h1 style="margin: 10px 0;">📸 {{ trip.name }} - Gallery</h1>
+            {% else %}
+            <h1 style="margin: 10px 0;">📸 My Gallery</h1>
+            {% endif %}
             <p style="color: #888; margin: 5px 0 0 0;">Share your trip memories with everyone</p>
         </div>
 
@@ -21,11 +25,13 @@
     </div>
 
     <!-- Hidden Upload Form -->
+    {% if trip %}
     <form id="uploadForm" action="/trip/{{ trip.id }}/upload" method="post" enctype="multipart/form-data"
         style="display: none;">
         <input type="file" id="photoUpload" name="photo" accept="image/*,video/*"
             onchange="document.getElementById('uploadForm').submit()">
     </form>
+    {% endif %}
 
     <!-- Photo Count -->
     <div class="glass-card" style="margin-bottom: 30px; padding: 16px;">

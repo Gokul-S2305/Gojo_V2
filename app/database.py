@@ -5,6 +5,9 @@ from sqlalchemy.orm import sessionmaker
 from app.config import settings
 
 from sqlalchemy import text
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Create async engine with config-based settings
 engine = create_async_engine(
@@ -24,11 +27,22 @@ async def init_db():
         await conn.run_sync(SQLModel.metadata.create_all)
         
         # Auto-migration: Add columns if they don't exist
-        # This fixes the "no such column" errors
-        await conn.execute(text("ALTER TABLE trip ADD COLUMN IF NOT EXISTS start_location TEXT;"))
-        await conn.execute(text("ALTER TABLE trip ADD COLUMN IF NOT EXISTS estimated_budget FLOAT;"))
-        await conn.execute(text("ALTER TABLE tripuserlink ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'member';"))
-        await conn.execute(text("ALTER TABLE photo ADD COLUMN IF NOT EXISTS media_type TEXT DEFAULT 'image';"))
+        # SQLite does not support "IF NOT EXISTS" for ADD COLUMN, so we wrap in try-except
+        migration_statements = [
+            "ALTER TABLE trip ADD COLUMN start_location TEXT;",
+            "ALTER TABLE trip ADD COLUMN estimated_budget FLOAT;",
+            "ALTER TABLE tripuserlink ADD COLUMN role TEXT DEFAULT 'member';",
+            "ALTER TABLE photo ADD COLUMN media_type TEXT DEFAULT 'image';"
+        ]
+        
+        for statement in migration_statements:
+            try:
+                await conn.execute(text(statement))
+            except Exception as e:
+                # Ignore "duplicate column" error, but log others if significant
+                if "duplicate column name" in str(e).lower() or "already exists" in str(e).lower():
+                    continue
+                logger.warning(f"Migration statement ignored: {statement} - Error: {e}")
 
 async def get_session() -> AsyncSession:
     async_session = sessionmaker(

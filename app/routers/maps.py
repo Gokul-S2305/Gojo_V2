@@ -26,6 +26,37 @@ if settings.gemini_api_key:
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
 
+@router.get("/maps", response_class=HTMLResponse)
+async def maps_root(
+    request: Request,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    
+    # Get latest trip for this user
+    statement = select(Trip).join(TripUserLink).where(TripUserLink.user_id == user.id).order_by(Trip.id.desc()).limit(1)
+    result = await session.execute(statement)
+    trip = result.scalar_one_or_none()
+    
+    if trip:
+        return await trip_map(request, trip.id, user, session)
+    
+    # If no trip, show a default map of India or similar
+    default_coords = (20.5937, 78.9629)
+    m = folium.Map(location=default_coords, zoom_start=5)
+    plugins.Fullscreen().add_to(m)
+    map_html = m._repr_html_()
+    
+    return templates.TemplateResponse("map.html", {
+        "request": request,
+        "user": user,
+        "trip": None,
+        "map_html": map_html,
+        "recommendations": {"hotels": [], "restaurants": [], "attractions": []}
+    })
+
 # City coordinates for map centering (Fallback)
 CITY_COORDS = {
     "goa": (15.2993, 74.1240),

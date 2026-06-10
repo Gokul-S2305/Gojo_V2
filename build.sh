@@ -4,7 +4,7 @@ set -o errexit
 
 # Install Python dependencies
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r req.txt
 
 # Create necessary directories
 mkdir -p uploads

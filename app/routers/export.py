@@ -1,40 +1,51 @@
-from fastapi import APIRouter, Request, Depends
+from fastapi import APIRouter, Request, Depends, BackgroundTasks
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.database import get_session
-from app.models import User, Trip, TripUserLink, Expense
+from app.models import User, Trip, TripUserLink, Expense, ItineraryItem
 from app.auth_utils import get_current_user
 from pathlib import Path
-from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image as RLImage
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.lib.enums import TA_CENTER
 from io import BytesIO
 import tempfile
+import os
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
+
+
+def _cleanup_temp_file(path: str):
+    """Background task: delete temp file after response is sent."""
+    try:
+        os.unlink(path)
+    except Exception as e:
+        logger.warning(f"Could not delete temp file {path}: {e}")
+
 
 @router.get("/trip/{trip_id}/export/pdf")
 async def export_trip_pdf(
     trip_id: int,
+    background_tasks: BackgroundTasks,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
     if not user:
         return RedirectResponse("/login", status_code=302)
-    
-    # Get trip
+
     trip_statement = select(Trip).where(Trip.id == trip_id)
     trip_result = await session.execute(trip_statement)
     trip = trip_result.scalar_one_or_none()
-    
+
     if not trip:
         return RedirectResponse("/dashboard", status_code=302)
-    
-    # Check if user is member
+
     link_statement = select(TripUserLink).where(
         TripUserLink.trip_id == trip_id,
         TripUserLink.user_id == user.id
@@ -42,157 +53,175 @@ async def export_trip_pdf(
     link_result = await session.execute(link_statement)
     if not link_result.scalar_one_or_none():
         return RedirectResponse("/dashboard", status_code=302)
-    
-    # Get members
-    members_statement = select(User).join(TripUserLink).where(TripUserLink.trip_id == trip_id)
+
+    # Get members via JOIN
+    from app.models import User as UserModel
+    members_statement = select(UserModel, TripUserLink).join(
+        TripUserLink, UserModel.id == TripUserLink.user_id
+    ).where(TripUserLink.trip_id == trip_id)
     members_result = await session.execute(members_statement)
-    members = members_result.scalars().all()
-    
-    # Get expenses
-    expenses_statement = select(Expense).where(Expense.trip_id == trip_id).order_by(Expense.created_at.desc())
+    members_data = members_result.all()
+
+    # Get expenses with user info via JOIN
+    expenses_statement = select(Expense, UserModel).join(
+        UserModel, Expense.user_id == UserModel.id
+    ).where(Expense.trip_id == trip_id).order_by(Expense.created_at.desc())
     expenses_result = await session.execute(expenses_statement)
-    expenses = expenses_result.scalars().all()
-    
-    # Load user relationship for expenses
-    for expense in expenses:
-        await session.refresh(expense, ["user"])
-    
-    # Calculate total
-    total_expenses = sum(expense.amount for expense in expenses)
-    
-    # Generate PDF
+    expenses_data = expenses_result.all()
+
+    total_expenses = sum(e.amount for e, _ in expenses_data)
+
+    # Get itinerary
+    itinerary_statement = select(ItineraryItem).where(
+        ItineraryItem.trip_id == trip_id
+    ).order_by(ItineraryItem.day_number, ItineraryItem.time)
+    itinerary_result = await session.execute(itinerary_statement)
+    itinerary_items = itinerary_result.scalars().all()
+
+    # Build PDF
     pdf_buffer = BytesIO()
     doc = SimpleDocTemplate(pdf_buffer, pagesize=letter)
     story = []
-    
-    # Styles
+
     styles = getSampleStyleSheet()
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        textColor=colors.HexColor('#6C63FF'),
-        spaceAfter=30,
-        alignment=TA_CENTER
-    )
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=16,
-        textColor=colors.HexColor('#6C63FF'),
-        spaceAfter=12,
-        spaceBefore=20
-    )
-    
-    # Title
+    brand_blue = colors.HexColor('#4F46E5')
+    brand_cyan = colors.HexColor('#06B6D4')
+
+    title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
+                                  fontSize=24, textColor=brand_blue,
+                                  spaceAfter=30, alignment=TA_CENTER)
+    heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'],
+                                    fontSize=16, textColor=brand_blue,
+                                    spaceAfter=12, spaceBefore=20)
+
     story.append(Paragraph(f"🗺️ {trip.name}", title_style))
-    story.append(Paragraph(f"Trip Summary Report", styles['Normal']))
-    story.append(Spacer(1, 0.3*inch))
-    
+    story.append(Paragraph("Trip Summary Report — Generated by Gojo Trip Planner", styles['Normal']))
+    story.append(Spacer(1, 0.3 * inch))
+
     # Trip Details
     story.append(Paragraph("Trip Information", heading_style))
+    duration = (trip.end_date - trip.start_date).days + 1
     trip_data = [
         ['Destination:', trip.destination],
+        ['Start Location:', trip.start_location or 'N/A'],
         ['Start Date:', str(trip.start_date)],
         ['End Date:', str(trip.end_date)],
-        ['Duration:', f"{(trip.end_date - trip.start_date).days + 1} days"],
-        ['Join Code:', trip.join_code]
+        ['Duration:', f"{duration} days"],
+        ['Join Code:', trip.join_code],
     ]
-    trip_table = Table(trip_data, colWidths=[2*inch, 4*inch])
+    trip_table = Table(trip_data, colWidths=[2 * inch, 4 * inch])
     trip_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0F0F0')),
+        ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#F0F4FF')),
         ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, -1), 10),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
     ]))
     story.append(trip_table)
-    story.append(Spacer(1, 0.3*inch))
-    
+    story.append(Spacer(1, 0.3 * inch))
+
     # Members
     story.append(Paragraph("Trip Members", heading_style))
-    members_data = [['Name', 'Email']]
-    for member in members:
-        members_data.append([member.full_name or 'N/A', member.email])
-    
-    members_table = Table(members_data, colWidths=[2.5*inch, 3.5*inch])
+    members_data_table = [['Name', 'Email', 'Role']]
+    for member, link in members_data:
+        members_data_table.append([
+            member.full_name or 'N/A',
+            member.email,
+            link.role.capitalize()
+        ])
+    members_table = Table(members_data_table, colWidths=[2 * inch, 3 * inch, 1.5 * inch])
     members_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6C63FF')),
+        ('BACKGROUND', (0, 0), (-1, 0), brand_blue),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
         ('FONTSIZE', (0, 0), (-1, 0), 11),
         ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
         ('TOPPADDING', (0, 0), (-1, -1), 8),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+        ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F8FAFF')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
     ]))
     story.append(members_table)
-    story.append(Spacer(1, 0.3*inch))
-    
+    story.append(Spacer(1, 0.3 * inch))
+
+    # Itinerary
+    if itinerary_items:
+        story.append(Paragraph("Itinerary", heading_style))
+        itin_data = [['Day', 'Time', 'Activity', 'Location']]
+        for item in itinerary_items:
+            itin_data.append([
+                f"Day {item.day_number}",
+                item.time or '-',
+                item.activity,
+                item.location or '-',
+            ])
+        itin_table = Table(itin_data, colWidths=[0.7 * inch, 0.8 * inch, 2.8 * inch, 2.2 * inch])
+        itin_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), brand_cyan),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.HexColor('#F0FFFE')),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        story.append(itin_table)
+        story.append(Spacer(1, 0.3 * inch))
+
     # Budget Summary
     story.append(Paragraph("Budget Summary", heading_style))
-    if expenses:
-        expense_data = [['Purpose', 'Amount (₹)', 'Added By', 'Date']]
-        for expense in expenses:
-            expense_data.append([
+    if expenses_data:
+        expense_rows = [['Purpose', 'Category', 'Amount (₹)', 'Added By', 'Date']]
+        for expense, exp_user in expenses_data:
+            expense_rows.append([
                 expense.purpose,
+                expense.category,
                 f"₹{expense.amount:.2f}",
-                expense.user.full_name or expense.user.email,
-                expense.created_at.strftime('%b %d, %Y') if expense.created_at else 'N/A'
+                exp_user.full_name or exp_user.email,
+                expense.created_at.strftime('%b %d, %Y') if expense.created_at else 'N/A',
             ])
-        
-        # Add total row
-        expense_data.append(['', 'Total:', f"₹{total_expenses:.2f}", ''])
-        
-        expense_table = Table(expense_data, colWidths=[2*inch, 1.5*inch, 1.5*inch, 1.5*inch])
+        expense_rows.append(['', '', f"Total: ₹{total_expenses:.2f}", '', ''])
+
+        expense_table = Table(expense_rows, colWidths=[1.7 * inch, 1 * inch, 1.2 * inch, 1.3 * inch, 1.3 * inch])
         expense_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#6C63FF')),
+            ('BACKGROUND', (0, 0), (-1, 0), brand_blue),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
             ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('ALIGN', (2, 0), (2, -1), 'RIGHT'),
             ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-            ('FONTSIZE', (0, 0), (-1, 0), 11),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-            ('TOPPADDING', (0, 0), (-1, -1), 8),
-            ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
-            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#FFE5B4')),
-            ('FONTNAME', (1, -1), (2, -1), 'Helvetica-Bold'),
-            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey)
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 7),
+            ('TOPPADDING', (0, 0), (-1, -1), 7),
+            ('BACKGROUND', (0, 1), (-1, -2), colors.HexColor('#F8FAFF')),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#E0E7FF')),
+            ('FONTNAME', (2, -1), (2, -1), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
         ]))
         story.append(expense_table)
     else:
         story.append(Paragraph("No expenses recorded yet.", styles['Normal']))
-    
-    story.append(Spacer(1, 0.5*inch))
-    
-    # Footer
-    footer_style = ParagraphStyle(
-        'Footer',
-        parent=styles['Normal'],
-        fontSize=9,
-        textColor=colors.grey,
-        alignment=TA_CENTER
-    )
+
+    story.append(Spacer(1, 0.5 * inch))
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'],
+                                   fontSize=9, textColor=colors.grey, alignment=TA_CENTER)
     story.append(Paragraph("Generated by Gojo Trip Planner", footer_style))
     story.append(Paragraph(f"Exported by: {user.full_name or user.email}", footer_style))
-    
-    # Build PDF
+
     doc.build(story)
     pdf_buffer.seek(0)
-    
-    # Save to temp file and return
+
+    # Save to temp file
     temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.pdf')
     temp_file.write(pdf_buffer.read())
     temp_file.close()
-    
+
+    # Schedule cleanup after response (Fix: temp file leak)
+    background_tasks.add_task(_cleanup_temp_file, temp_file.name)
+
     filename = f"{trip.name.replace(' ', '_')}_Summary.pdf"
-    
-    return FileResponse(
-        temp_file.name,
-        media_type='application/pdf',
-        filename=filename
-    )
+    return FileResponse(temp_file.name, media_type='application/pdf', filename=filename)

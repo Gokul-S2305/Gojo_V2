@@ -1,55 +1,58 @@
-# .gitignore additions for deployment
-
-# Environment variables
-.env
-.env.local
-.env.production
-
-# Database files (don't commit local SQLite to production)
-*.db
-*.db-journal
-*.db.bak
-
-# Python cache
+# ===== Python =====
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
 
-# Virtual environments
+# ===== Virtual Environments =====
+.venv/
 venv/
-env/
 ENV/
-.venv
+env/
 
-# IDE
-.vscode/
+# ===== IDE =====
 .idea/
+.vscode/
 *.swp
 *.swo
-*~
-
-# OS
 .DS_Store
-Thumbs.db
 
-# Uploads (user-generated content)
-uploads/*
+# ===== Database (NEVER commit the database file!) =====
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+gojo.db*
+
+# ===== Environment Variables =====
+.env
+.env.local
+.env.production
+.env.staging
+
+# ===== Uploads =====
+uploads/
 !uploads/.gitkeep
-gallery/*
-!gallery/.gitkeep
 
-# Logs
+# ===== Logs =====
 *.log
 logs/
 
-# Testing
-.pytest_cache/
+# ===== Coverage =====
 .coverage
 htmlcov/
+.pytest_cache/
 
-# Build
-dist/
-build/
-*.egg-info/
+# ===== MyPy =====
+.mypy_cache/
+
+# ===== Misc =====
+*.tmp
+*.temp
+/tmp/

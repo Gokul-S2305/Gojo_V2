@@ -3,20 +3,25 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description"
-        content="Gojo Trip Planner - Where Journeys Become Memories. Plan, collaborate, and share your travel adventures.">
-    <title>{% block title %}{{ title }} | Gojo Trip Planner{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="description" content="Gojo Trip Planner — Your complete trip companion. Plan, collaborate, and cherish your travel memories.">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Gojo">
+    <meta name="mobile-web-app-capable" content="yes">
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/jpeg" href="/static/logo.jpg">
+    <title>{% block title %}{{ title | default("Gojo Trip Planner") }}{% endblock %}</title>
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/images/icon-192.png">
+    <link rel="icon" type="image/png" href="/static/images/icon-192.png">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="/static/css/design-system.css">
@@ -24,107 +29,157 @@
     <link rel="stylesheet" href="/static/css/main.css">
 
     {% block extra_css %}{% endblock %}
+
+    <!-- Prevent FOUC on dark mode -->
+    <script>
+        (function () {
+            const t = localStorage.getItem('gojo-theme') || 'light';
+            document.documentElement.setAttribute('data-theme', t);
+        })();
+    </script>
 </head>
 
 <body>
-    <script>
-        // Immediate theme initialization to prevent flash
-        if (localStorage.getItem('theme') === 'dark') {
-            document.documentElement.setAttribute('data-theme', 'dark');
-        }
-    </script>
     <div class="page-wrapper">
-        <!-- Navigation Bar -->
+
         {% if user %}
+        <!-- ===== Top Navbar ===== -->
         <nav class="navbar">
             <div class="container">
                 <div class="navbar-container">
-                    <a href="/dashboard" class="navbar-brand"
-                        style="display: flex; align-items: center; gap: 10px; text-decoration: none;">
-                        <img src="/static/logo.jpg" alt="Gojo Logo" class="navbar-logo"
-                            style="width: 40px; height: 40px; border-radius: 8px;">
-                        <span
-                            style="font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, #00C9FF, #92FE9D); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));">Gojo</span>
+                    <a href="/dashboard" class="navbar-brand" style="text-decoration:none; display:flex; align-items:center; gap:var(--space-3);">
+                        <img src="/static/images/logo1.png" alt="Gojo Logo" class="navbar-logo" style="border-radius:50%;">
+                        <div style="display:flex; flex-direction:column; justify-content:center;">
+                            <span class="brand-text" style="line-height:1;">Gojo</span>
+                            <span style="font-size:0.6rem; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; line-height:1; font-weight:var(--fw-medium); margin-top:2px;">Where Journeys Become Memories</span>
+                        </div>
                     </a>
 
-                    <ul class="navbar-nav">
-                        <li><a href="/dashboard"
-                                class="nav-link {% if request.url.path == '/dashboard' %}active{% endif %}">Dashboard</a>
-                        </li>
-                        <li><a href="/gallery"
-                                class="nav-link {% if '/gallery' in request.url.path %}active{% endif %}">Gallery</a>
-                        </li>
-                        <li><a href="/maps"
-                                class="nav-link {% if '/maps' in request.url.path %}active{% endif %}">Maps</a></li>
+                    <!-- Desktop Nav Links -->
+                    <ul class="navbar-nav hide-mobile">
+                        <li><a href="/dashboard" class="nav-link {% if '/dashboard' in request.url.path %}active{% endif %}">🏠 Dashboard</a></li>
+                        <li><a href="/gallery" class="nav-link {% if '/gallery' in request.url.path %}active{% endif %}">📸 Gallery</a></li>
+                        <li><a href="/maps" class="nav-link {% if '/map' in request.url.path %}active{% endif %}">🗺️ Maps</a></li>
+                    </ul>
+
+                    <!-- Right side controls -->
+                    <div style="display:flex;align-items:center;gap:var(--space-3);">
+                        <!-- Theme Toggle -->
+                        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
+
+                        <!-- Notifications -->
+                        <button class="btn btn-ghost btn-icon" onclick="enableNotifications()" id="notifToggle" title="Enable notifications" style="position:relative;">
+                            🔔
+                        </button>
 
                         <!-- User Menu -->
-                        <li style="position: relative;">
-                            <div class="avatar" onclick="toggleUserMenu()" style="cursor: pointer;">
-                                {{ user.full_name[0].upper() if user.full_name else user.email[0].upper() }}
+                        <div style="position:relative;">
+                            <div class="avatar user-menu-trigger" onclick="toggleUserMenu()" title="{{ user.full_name or user.email }}">
+                                {{ (user.full_name or user.email)[0].upper() }}
                             </div>
-                            <div id="userMenu" class="card"
-                                style="display: none; position: absolute; right: 0; top: 50px; min-width: 200px; z-index: 1000;">
-                                <div class="card-body" style="padding: var(--spacing-md);">
-                                    <p
-                                        style="margin: 0 0 var(--spacing-sm) 0; font-weight: var(--font-weight-semibold);">
-                                        {{ user.full_name or user.email }}</p>
-                                    <p
-                                        style="margin: 0 0 var(--spacing-md) 0; font-size: var(--font-size-sm); color: var(--color-neutral-gray-500);">
-                                        {{ user.email }}</p>
-                                    <hr
-                                        style="margin: var(--spacing-md) 0; border: none; border-top: 1px solid var(--color-neutral-gray-200);">
-                                    <a href="/logout" class="btn btn-secondary btn-sm btn-block">Logout</a>
+                            <div class="user-dropdown" style="display:none;" id="userDropdown">
+                                <div class="user-dropdown-header">
+                                    <div style="font-weight:var(--fw-semibold);color:var(--text);font-size:var(--text-sm);">
+                                        {{ user.full_name or 'User' }}
+                                    </div>
+                                    <div style="font-size:var(--text-xs);color:var(--text-3);">{{ user.email }}</div>
                                 </div>
+                                <a href="/dashboard" class="user-dropdown-item">🏠 Dashboard</a>
+                                <a href="/gallery" class="user-dropdown-item">📸 Gallery</a>
+                                <a href="/maps" class="user-dropdown-item">🗺️ Maps</a>
+                                <div style="border-top:1px solid var(--border);"></div>
+                                <a href="/logout" class="user-dropdown-item danger">🚪 Logout</a>
                             </div>
-                        </li>
-                    </ul>
+                        </div>
+                    </div>
                 </div>
+            </div>
+        </nav>
+
+        <!-- ===== Bottom Navigation (Mobile) ===== -->
+        <nav class="bottom-nav hide-desktop" id="bottomNav">
+            <div class="bottom-nav-items">
+                <a href="/dashboard" class="bottom-nav-item {% if '/dashboard' in request.url.path %}active{% endif %}">
+                    <span class="nav-icon">🏠</span>
+                    <span>Home</span>
+                </a>
+                <a href="/maps" class="bottom-nav-item {% if '/map' in request.url.path %}active{% endif %}">
+                    <span class="nav-icon">🗺️</span>
+                    <span>Map</span>
+                </a>
+                <a href="/gallery" class="bottom-nav-item {% if '/gallery' in request.url.path %}active{% endif %}">
+                    <span class="nav-icon">📸</span>
+                    <span>Gallery</span>
+                </a>
+                <a href="/logout" class="bottom-nav-item">
+                    <span class="nav-icon">👤</span>
+                    <span>Profile</span>
+                </a>
             </div>
         </nav>
         {% endif %}
 
-        <!-- Main Content -->
+        <!-- ===== Main Content ===== -->
         <main class="page-content">
             {% block content %}
-            <!-- Default landing page -->
+            <!-- Landing Page -->
             <div class="hero">
                 <div class="hero-content container">
-                    <img src="/static/logo.jpg" alt="Gojo Logo"
-                        style="max-width: 200px; margin-bottom: var(--spacing-xl); border-radius: var(--border-radius-2xl); box-shadow: var(--shadow-2xl);">
-                    <h1 class="hero-title">Where Journeys Become Memories</h1>
-                    <p class="hero-subtitle">Plan, collaborate, and share your travel adventures with Gojo</p>
-                    <div
-                        style="display: flex; gap: var(--spacing-md); justify-content: center; margin-top: var(--spacing-2xl);">
-                        <a href="/login" class="btn btn-coral btn-lg">Get Started</a>
-                        <a href="/register" class="btn btn-outline btn-lg"
-                            style="color: white; border-color: white;">Sign Up</a>
+                    <img src="/static/images/logo1.png" alt="Gojo Logo"
+                        style="width:140px;height:140px;border-radius:50%;margin-bottom:var(--space-8);box-shadow:var(--shadow-xl);">
+                    <h1 class="hero-title">Where Journeys<br>Become Memories</h1>
+                    <p class="hero-subtitle">Your complete trip companion — plan, collaborate, manage bookings, and keep memories forever.</p>
+                    <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;">
+                        <a href="/login" class="btn btn-xl" style="background:white;color:var(--primary);font-weight:var(--fw-bold);box-shadow:var(--shadow-lg);">Get Started Free</a>
+                        <a href="/register" class="btn btn-xl btn-outline" style="border-color:rgba(255,255,255,0.6);color:white;">Sign Up</a>
                     </div>
                 </div>
             </div>
 
-            <!-- Features Section -->
-            <div class="container" style="margin-top: var(--spacing-4xl);">
-                <h2 style="text-align: center; margin-bottom: var(--spacing-2xl);">Why Choose Gojo?</h2>
-                <div class="grid grid-cols-3">
-                    <div class="card">
-                        <div class="card-body" style="text-align: center;">
-                            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">🗺️</div>
-                            <h3>Interactive Maps</h3>
-                            <p class="text-muted">Visualize your journey with beautiful interactive maps</p>
+            <!-- Features -->
+            <div class="container section">
+                <h2 class="text-center" style="margin-bottom:var(--space-10);">Everything you need for the perfect trip</h2>
+                <div class="grid grid-cols-3" style="gap:var(--space-6);">
+                    <div class="card card-hover" style="text-align:center;">
+                        <div class="card-body">
+                            <div style="font-size:3rem;margin-bottom:var(--space-4);">🗺️</div>
+                            <h3>Smart Maps</h3>
+                            <p class="text-muted">Interactive maps with AI-powered recommendations for hotels, restaurants, and attractions.</p>
                         </div>
                     </div>
-                    <div class="card">
-                        <div class="card-body" style="text-align: center;">
-                            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">💬</div>
+                    <div class="card card-hover" style="text-align:center;">
+                        <div class="card-body">
+                            <div style="font-size:3rem;margin-bottom:var(--space-4);">💬</div>
                             <h3>Real-time Chat</h3>
-                            <p class="text-muted">Coordinate with your travel companions instantly</p>
+                            <p class="text-muted">Coordinate with your travel companions instantly with live WebSocket messaging.</p>
                         </div>
                     </div>
-                    <div class="card">
-                        <div class="card-body" style="text-align: center;">
-                            <div style="font-size: 3rem; margin-bottom: var(--spacing-md);">📸</div>
+                    <div class="card card-hover" style="text-align:center;">
+                        <div class="card-body">
+                            <div style="font-size:3rem;margin-bottom:var(--space-4);">🏨</div>
+                            <h3>Booking Manager</h3>
+                            <p class="text-muted">Keep all your hotel bookings, flight tickets, and transport details in one place.</p>
+                        </div>
+                    </div>
+                    <div class="card card-hover" style="text-align:center;">
+                        <div class="card-body">
+                            <div style="font-size:3rem;margin-bottom:var(--space-4);">📸</div>
                             <h3>Photo Gallery</h3>
-                            <p class="text-muted">Share and cherish your travel memories together</p>
+                            <p class="text-muted">Share and cherish your travel memories together with a beautiful shared gallery.</p>
+                        </div>
+                    </div>
+                    <div class="card card-hover" style="text-align:center;">
+                        <div class="card-body">
+                            <div style="font-size:3rem;margin-bottom:var(--space-4);">🤖</div>
+                            <h3>AI Itinerary</h3>
+                            <p class="text-muted">Get personalized day-by-day itinerary suggestions powered by Gemini AI.</p>
+                        </div>
+                    </div>
+                    <div class="card card-hover" style="text-align:center;">
+                        <div class="card-body">
+                            <div style="font-size:3rem;margin-bottom:var(--space-4);">📱</div>
+                            <h3>Install as App</h3>
+                            <p class="text-muted">Install Gojo on your phone for a native-like experience, even offline.</p>
                         </div>
                     </div>
                 </div>
@@ -132,70 +187,51 @@
             {% endblock %}
         </main>
 
-        <!-- Footer -->
-        <footer class="footer">
-            <div class="container">
-                <div class="footer-content">
-                    <div class="footer-section">
-                        <h4>Gojo Trip Planner</h4>
-                        <p style="color: var(--color-neutral-gray-400);">Where Journeys Become Memories</p>
-                    </div>
-                    <div class="footer-section">
-                        <h4>Features</h4>
-                        <ul class="footer-links">
-                            <li><a href="/dashboard">Trip Planning</a></li>
-                            <li><a href="/gallery">Photo Gallery</a></li>
-                            <li><a href="/maps">Interactive Maps</a></li>
-                            <li><a href="#">Budget Tracking</a></li>
-                        </ul>
-                    </div>
-                    <div class="footer-section">
-                        <h4>Support</h4>
-                        <ul class="footer-links">
-                            <li><a href="#">Help Center</a></li>
-                            <li><a href="#">Contact Us</a></li>
-                            <li><a href="#">Privacy Policy</a></li>
-                            <li><a href="#">Terms of Service</a></li>
-                        </ul>
-                    </div>
-                </div>
-                <div class="footer-bottom">
-                    <p>&copy; 2026 Gojo Trip Planner. All rights reserved.</p>
-                </div>
-            </div>
-        </footer>
     </div>
 
-    <!-- Toast Container (created by JavaScript) -->
+    <!-- ===== Lightbox ===== -->
+    <div id="lightbox" class="lightbox" onclick="GojoApp.lightbox.close()">
+        <button class="lightbox-close" onclick="GojoApp.lightbox.close()">✕</button>
+        <div id="lightboxContent"></div>
+    </div>
 
-    <!-- Scripts -->
+    <!-- ===== Install Banner (PWA) ===== -->
+    <div id="installBanner" class="install-banner install-banner-hidden">
+        <img src="/static/images/icon-192.png" style="width:48px;height:48px;border-radius:var(--radius-md);" alt="Gojo">
+        <div style="flex:1;">
+            <div style="font-weight:var(--fw-semibold);font-size:var(--text-sm);color:var(--text);">Install Gojo</div>
+            <div style="font-size:var(--text-xs);color:var(--text-3);">Add to home screen for quick access</div>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="installApp()">Install</button>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="document.getElementById('installBanner').classList.add('install-banner-hidden')">✕</button>
+    </div>
+
+    <!-- ===== Scripts ===== -->
     <script src="/static/js/main.js"></script>
+
     <script>
-        // User menu toggle
+        // User menu
         function toggleUserMenu() {
-            const menu = document.getElementById('userMenu');
-            menu.style.display = menu.style.display === 'none' ? 'block' : 'none';
+            const menu = document.getElementById('userDropdown');
+            if (menu) menu.style.display = menu.style.display === 'none' || !menu.style.display ? 'block' : 'none';
         }
 
-        // Close user menu when clicking outside
         document.addEventListener('click', (e) => {
-            const menu = document.getElementById('userMenu');
-            const avatar = document.querySelector('.avatar');
-            if (menu && !menu.contains(e.target) && !avatar.contains(e.target)) {
-                menu.style.display = 'none';
+            if (!e.target.closest('.user-menu-trigger') && !e.target.closest('.user-dropdown')) {
+                const menu = document.getElementById('userDropdown');
+                if (menu) menu.style.display = 'none';
             }
         });
 
-        // Show success/error messages from backend
         {% if error %}
         window.addEventListener('DOMContentLoaded', () => {
-            GojoApp.toast.show('{{ error }}', 'error');
+            GojoApp.toast.show({{ error | tojson }}, 'error');
         });
         {% endif %}
 
         {% if success %}
         window.addEventListener('DOMContentLoaded', () => {
-            GojoApp.toast.show('{{ success }}', 'success');
+            GojoApp.toast.show({{ success | tojson }}, 'success');
         });
         {% endif %}
     </script>

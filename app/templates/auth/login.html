@@ -1,111 +1,121 @@
 {% extends "base.html" %}
-
-{% block title %}Login{% endblock %}
+{% block title %}Sign In | Gojo Trip Planner{% endblock %}
 
 {% block content %}
-<div class="auth-container">
-    <div class="auth-card">
-        <!-- Visual Side -->
-        <div class="auth-visual">
-            <img src="/static/logo.jpg" alt="Gojo Logo" class="auth-logo">
-            <h2 class="auth-visual-title">Welcome Back!</h2>
-            <p class="auth-visual-subtitle">Continue your journey with Gojo</p>
-        </div>
+<div class="auth-layout">
 
-        <!-- Form Side -->
+    <!-- Left Hero Panel -->
+    <div class="auth-hero">
+        <div class="auth-hero-content">
+            <img src="/static/images/logo1.png" alt="Gojo Logo"
+                style="width:100px;height:100px;border-radius:50%;margin-bottom:var(--space-6);box-shadow:0 10px 30px rgba(0,0,0,0.2);">
+            <h1>Welcome Back!</h1>
+            <p>Sign in to plan your next adventure, coordinate with your squad, and relive your favourite memories.</p>
+
+            <div style="margin-top:var(--space-10);display:flex;flex-direction:column;gap:var(--space-4);">
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                    <span style="font-size:1.5rem;">✈️</span>
+                    <span style="color:rgba(255,255,255,0.9);">AI-powered trip planning</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                    <span style="font-size:1.5rem;">💬</span>
+                    <span style="color:rgba(255,255,255,0.9);">Real-time group chat</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                    <span style="font-size:1.5rem;">📸</span>
+                    <span style="color:rgba(255,255,255,0.9);">Shared photo memories</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                    <span style="font-size:1.5rem;">🎫</span>
+                    <span style="color:rgba(255,255,255,0.9);">Hotel & ticket management</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Form Panel -->
+    <div class="auth-form-side">
         <div class="auth-form-container">
-            <h1 class="auth-form-title">Sign In</h1>
-            <p class="auth-form-subtitle">Enter your credentials to access your account</p>
+
+            <h2 style="margin-bottom:var(--space-2);">Sign In</h2>
+            <p style="color:var(--text-3);margin-bottom:var(--space-8);">Don't have an account? <a href="/register">Sign Up Free</a></p>
 
             {% if error %}
-            <div class="alert alert-error">
-                {{ error }}
+            <div class="alert alert-error" style="margin-bottom:var(--space-5);">
+                <span>❌</span>
+                <span>{{ error }}</span>
             </div>
             {% endif %}
 
-            <form method="post" action="/login" data-validate>
-                <!-- Email Field -->
+            <!-- Google OAuth -->
+            <a href="/login/google" class="btn btn-block btn-ghost" style="margin-bottom:var(--space-4);border:2px solid var(--border);justify-content:center;gap:var(--space-3);">
+                <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                    <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                    <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                    <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                </svg>
+                Continue with Google
+            </a>
+
+            <!-- Divider -->
+            <div style="display:flex;align-items:center;gap:var(--space-4);margin:var(--space-5) 0;">
+                <div style="flex:1;height:1px;background:var(--border);"></div>
+                <span style="font-size:var(--text-sm);color:var(--text-3);">or sign in with email</span>
+                <div style="flex:1;height:1px;background:var(--border);"></div>
+            </div>
+
+            <!-- Email Form -->
+            <form action="/login" method="post">
                 <div class="form-group">
-                    <div class="form-floating">
-                        <input type="email" id="email" name="email" class="form-control" placeholder=" " required
-                            autocomplete="email">
-                        <label for="email">Email Address</label>
-                    </div>
+                    <label class="form-label" for="login-email">Email Address</label>
+                    <input type="email" id="login-email" name="email" class="form-control" placeholder="you@example.com" required autocomplete="email">
                 </div>
-
-                <!-- Password Field -->
                 <div class="form-group">
-                    <div class="form-floating">
-                        <input type="password" id="password" name="password" class="form-control" placeholder=" "
-                            required autocomplete="current-password">
-                        <label for="password">Password</label>
-                    </div>
-                    <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--spacing-sm);">
-                        <label
-                            style="display: flex; align-items: center; gap: var(--spacing-xs); font-size: var(--font-size-sm); cursor: pointer;">
-                            <input type="checkbox" name="remember" style="cursor: pointer;">
-                            <span>Remember me</span>
-                        </label>
-                        <a href="#" style="font-size: var(--font-size-sm); color: var(--color-primary);">Forgot
-                            password?</a>
+                    <label class="form-label" for="login-password">Password</label>
+                    <div style="position:relative;">
+                        <input type="password" id="login-password" name="password" class="form-control" placeholder="Enter your password" required autocomplete="current-password">
+                        <button type="button"
+                            style="position:absolute;right:var(--space-3);top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);font-size:var(--text-lg);"
+                            onclick="togglePassword('login-password', this)">👁️</button>
                     </div>
                 </div>
-
-                <!-- Submit Button -->
-                <button type="submit" class="btn btn-primary btn-lg btn-block">
-                    Sign In
-                </button>
-
-                <!-- Divider -->
-                <div style="text-align: center; margin: var(--spacing-xl) 0; position: relative;">
-                    <span
-                        style="background: white; padding: 0 var(--spacing-md); position: relative; z-index: 1; color: var(--color-neutral-gray-500); font-size: var(--font-size-sm);">
-                        or
-                    </span>
-                    <div
-                        style="position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: var(--color-neutral-gray-200);">
-                    </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-5);">
+                    <label class="form-check">
+                        <input type="checkbox" name="remember"> <span style="font-size:var(--text-sm);">Remember me</span>
+                    </label>
                 </div>
-
-                <!-- Google Sign In Button -->
-                <a href="/login/google" class="btn btn-outline btn-block google-btn" style="display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: var(--spacing-lg); border: 1px solid var(--color-neutral-gray-300); background: white; color: var(--color-neutral-gray-700); font-weight: 500; padding: 10px; border-radius: 8px; text-decoration: none; transition: all 0.3s ease;">
-                    <svg width="18" height="18" viewBox="0 0 18 18">
-                        <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                        <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 18 18 9 18z" fill="#34A853"/>
-                        <path d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z" fill="#FBBC05"/>
-                        <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.443 2.048.957 4.962l3.007 2.332C4.672 5.164 6.656 3.58 9 3.58z" fill="#EA4335"/>
-                    </svg>
-                    Continue with Google
-                </a>
-
-                <!-- Sign Up Link -->
-                <p style="text-align: center; color: var(--color-neutral-gray-600); margin: 0;">
-                    Don't have an account?
-                    <a href="/register"
-                        style="color: var(--color-primary); font-weight: var(--font-weight-semibold);">Sign up</a>
-                </p>
+                <button type="submit" class="btn btn-primary btn-block btn-lg" id="loginBtn">Sign In</button>
             </form>
+
+            <p style="text-align:center;margin-top:var(--space-6);color:var(--text-3);font-size:var(--text-sm);">
+                New to Gojo? <a href="/register" style="font-weight:var(--fw-semibold);">Create an account →</a>
+            </p>
+
         </div>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    /* Remove default page padding for auth pages */
-    .page-content {
-        padding: 0;
+{% block extra_js %}
+<script>
+function togglePassword(inputId, btn) {
+    const input = document.getElementById(inputId);
+    if (input.type === 'password') {
+        input.type = 'text';
+        btn.textContent = '🙈';
+    } else {
+        input.type = 'password';
+        btn.textContent = '👁️';
     }
+}
 
-    /* Hide navbar on auth pages */
-    .navbar {
-        display: none;
+document.querySelector('form')?.addEventListener('submit', () => {
+    const btn = document.getElementById('loginBtn');
+    if (btn) {
+        btn.textContent = 'Signing in...';
+        btn.disabled = true;
     }
-
-    /* Hide footer on auth pages */
-    .footer {
-        display: none;
-    }
-</style>
+});
+</script>
 {% endblock %}

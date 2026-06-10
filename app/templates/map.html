@@ -1,98 +1,102 @@
 {% extends "base.html" %}
+{% block title %}Map | Gojo{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="">
+<style>
+  .map-full { height: 500px; border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--border); }
+  @media (max-width: 768px) { .map-full { height: 320px; } }
+</style>
+{% endblock %}
 
 {% block content %}
-<div style="height: calc(100vh - 80px); display: flex;">
-    <!-- Sidebar for Suggestions -->
-    <div
-        style="width: 350px; background: #1a1a2e; border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; overflow-y: auto;">
-        <div style="padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            {% if trip %}
-            <a href="/trip/{{ trip.id }}"
-                style="color: #6C63FF; text-decoration: none; display: inline-flex; align-items: center; margin-bottom: 15px;">
-                ← Back to Trip
-            </a>
-            <h2 style="margin: 0;">{{ trip.destination }}</h2>
-            {% else %}
-            <h2 style="margin: 0;">Global Map</h2>
-            {% endif %}
-            <p style="color: #888; margin: 5px 0 0 0;">Interactive Map & Guide</p>
-        </div>
+<div class="container" style="padding-top:var(--space-6);">
 
-        <!-- Hotels -->
-        <div style="padding: 20px;">
-            <h3 style="color: #00C9FF; margin-top: 0;">🏨 Top Stays</h3>
-            {% if recommendations and recommendations.hotels %}
-            {% for hotel in recommendations.hotels %}
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <h4 style="margin: 0;">{{ hotel.name }}</h4>
-                    <span
-                        style="background: #FFC06C; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem;">{{
-                        hotel.rating }} ★</span>
-                </div>
-                <p style="color: #ccc; font-size: 0.9rem; margin: 0 0 5px 0;">Price: {{ hotel.price }}</p>
-                <p style="color: #888; font-size: 0.85rem; font-style: italic; margin: 0;">"{{ hotel.sentiment }}"</p>
-            </div>
-            {% endfor %}
-            {% else %}
-            <p style="color: #666;">No hotel suggestions available.</p>
-            {% endif %}
-        </div>
-
-        <!-- Restaurants -->
-        <div style="padding: 0 20px 20px 20px;">
-            <h3 style="color: #FF6B9D; margin-top: 0;">🍽️ Top Eats</h3>
-            {% if recommendations and recommendations.restaurants %}
-            {% for place in recommendations.restaurants %}
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <h4 style="margin: 0;">{{ place.name }}</h4>
-                    <span
-                        style="background: #FFC06C; color: black; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.8rem;">{{
-                        place.rating }} ★</span>
-                </div>
-                <p style="color: #ccc; font-size: 0.9rem; margin: 0 0 5px 0;">Cuisine: {{ place.cuisine }}</p>
-                <p style="color: #888; font-size: 0.85rem; font-style: italic; margin: 0;">"{{ place.sentiment }}"</p>
-            </div>
-            {% endfor %}
-            {% else %}
-            <p style="color: #666;">No restaurant suggestions available.</p>
-            {% endif %}
-        </div>
-
-        <!-- Attractions -->
-        <div style="padding: 0 20px 20px 20px;">
-            <h3 style="color: #92FE9D; margin-top: 0;">Attractions</h3>
-            {% if recommendations and recommendations.attractions %}
-            {% for place in recommendations.attractions %}
-            <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 12px; margin-bottom: 15px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <h4 style="margin: 0;">{{ place.name }}</h4>
-                </div>
-                <p style="color: #ccc; font-size: 0.9rem; margin: 0 0 5px 0;">Type: {{ place.type }}</p>
-                <p style="color: #888; font-size: 0.85rem; font-style: italic; margin: 0;">"{{ place.sentiment }}"</p>
-            </div>
-            {% endfor %}
-            {% else %}
-            <p style="color: #666;">No attraction suggestions available.</p>
-            {% endif %}
-        </div>
+    {% if trip %}
+    <!-- Trip Header -->
+    <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-5);">
+        <a href="/trip/{{ trip.id }}" class="btn btn-ghost btn-sm">← Back</a>
+        <h1 style="margin:0;">🗺️ {{ trip.name }}</h1>
+        <span class="badge badge-primary">{{ trip.destination }}</span>
     </div>
 
-    <!-- Map Container -->
-    <div style="flex: 1; position: relative;">
-        {{ map_html | safe }}
+    <!-- Map -->
+    <div id="tripMap" class="map-full"></div>
 
-        <!-- Places Toggle Overlay (Optional Enhancement) -->
-        <div
-            style="position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 12px; backdrop-filter: blur(10px); z-index: 999;">
-            <p style="margin: 0 0 10px 0; font-weight: bold;">Legend</p>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap; font-size: 0.8rem;">
-                <span style="color: red;">🚩 Destination</span>
-                <span style="color: green;">▶️ Start</span>
-                <span style="color: blue;">➖ Route</span>
+    <!-- Route Info -->
+    {% if start_coords %}
+    <div class="card" style="margin-top:var(--space-4);">
+        <div class="card-body" style="display:flex;gap:var(--space-6);flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;align-items:center;gap:var(--space-2);">
+                <span style="width:14px;height:14px;border-radius:50%;background:#10B981;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
+                <span class="text-sm"><strong>Start:</strong> {{ trip.start_location }}</span>
+            </div>
+            <div style="color:var(--text-4);">→</div>
+            <div style="display:flex;align-items:center;gap:var(--space-2);">
+                <span style="width:16px;height:16px;border-radius:50%;background:#4F46E5;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
+                <span class="text-sm"><strong>Destination:</strong> {{ trip.destination }}</span>
             </div>
         </div>
     </div>
+    {% endif %}
+
+    <!-- Recommendations Section -->
+    <div style="margin-top:var(--space-8);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-5);">
+            <h2 style="margin:0;">🤖 AI Recommendations</h2>
+            <button class="btn btn-gradient btn-sm" onclick="loadMapRecommendations()" id="mapRecBtn">
+                ✨ Load Recommendations
+            </button>
+        </div>
+        <div id="mapRecommendations">
+            <div class="empty-state" style="padding:var(--space-8);">
+                <div class="empty-state-icon">🏝️</div>
+                <div class="empty-state-title">Discover {{ trip.destination }}</div>
+                <p>Click "Load Recommendations" for AI-curated top spots.</p>
+            </div>
+        </div>
+    </div>
+
+    {% else %}
+    <div class="empty-state">
+        <div class="empty-state-icon">🗺️</div>
+        <div class="empty-state-title">No Trips Yet</div>
+        <p><a href="/dashboard">Create a trip</a> to see maps and routes!</p>
+    </div>
+    {% endif %}
+
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin=""></script>
+
+{% if trip %}
+<script>
+const DEST_COORDS  = {{ destination_coords | tojson }};
+const START_COORDS = {{ start_coords | tojson }};
+const ROUTE_PATH   = {{ route_path | tojson }};
+const TRIP_ID      = {{ trip.id }};
+
+// Init map
+window.addEventListener('DOMContentLoaded', () => {
+    GojoApp.mapModule.init('tripMap', DEST_COORDS, START_COORDS, ROUTE_PATH, '');
+
+    // Preloaded recommendations from server
+    const preloadedRecs = {{ recommendations | tojson }};
+    if (preloadedRecs && (preloadedRecs.hotels?.length || preloadedRecs.attractions?.length)) {
+        GojoApp.recommendations._render(document.getElementById('mapRecommendations'), preloadedRecs);
+    }
+});
+
+function loadMapRecommendations() {
+    const container = document.getElementById('mapRecommendations');
+    const btn = document.getElementById('mapRecBtn');
+    if (btn) btn.disabled = true;
+    GojoApp.recommendations.load(TRIP_ID, container).finally(() => {
+        if (btn) btn.disabled = false;
+    });
+}
+</script>
+{% endif %}
 {% endblock %}

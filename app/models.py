@@ -3,10 +3,9 @@ from sqlmodel import SQLModel, Field, Relationship
 from datetime import date, datetime
 
 class TripUserLink(SQLModel, table=True):
-
     trip_id: Optional[int] = Field(default=None, foreign_key="trip.id", primary_key=True)
     user_id: Optional[int] = Field(default=None, foreign_key="user.id", primary_key=True)
-    role: str = Field(default="member") # "organizer" or "member"
+    role: str = Field(default="member")  # "organizer" or "member"
 
 class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -14,11 +13,13 @@ class User(SQLModel, table=True):
     password_hash: Optional[str] = None
     full_name: Optional[str] = None
     drive_connected: bool = Field(default=False)
-    
+
     trips: List["Trip"] = Relationship(back_populates="users", link_model=TripUserLink)
     expenses: List["Expense"] = Relationship(back_populates="user")
     photos: List["Photo"] = Relationship(back_populates="user")
     messages: List["Message"] = Relationship(back_populates="user")
+    documents: List["Document"] = Relationship(back_populates="user")
+    push_subscriptions: List["PushSubscription"] = Relationship(back_populates="user")
 
 class Trip(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -30,21 +31,24 @@ class Trip(SQLModel, table=True):
     estimated_budget: Optional[float] = None
     join_code: str = Field(index=True, unique=True)
     drive_folder_id: Optional[str] = None
-    
+    notes: Optional[str] = None
+
     users: List[User] = Relationship(back_populates="trips", link_model=TripUserLink)
     expenses: List["Expense"] = Relationship(back_populates="trip")
     photos: List["Photo"] = Relationship(back_populates="trip")
     messages: List["Message"] = Relationship(back_populates="trip")
     itinerary: List["ItineraryItem"] = Relationship(back_populates="trip")
+    documents: List["Document"] = Relationship(back_populates="trip")
 
 class Expense(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     amount: float
     purpose: str
+    category: str = Field(default="Other")  # Food, Transport, Hotel, Activity, Other
     trip_id: int = Field(foreign_key="trip.id")
     user_id: int = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     trip: Trip = Relationship(back_populates="expenses")
     user: User = Relationship(back_populates="expenses")
 
@@ -53,9 +57,10 @@ class Photo(SQLModel, table=True):
     trip_id: int = Field(foreign_key="trip.id")
     user_id: int = Field(foreign_key="user.id")
     filename: str
-    media_type: str = Field(default="image") # "image" or "video"
+    media_type: str = Field(default="image")  # "image" or "video"
+    caption: Optional[str] = None
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     trip: "Trip" = Relationship(back_populates="photos")
     user: User = Relationship(back_populates="photos")
 
@@ -65,7 +70,7 @@ class Message(SQLModel, table=True):
     user_id: int = Field(foreign_key="user.id")
     content: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
-    
+
     trip: "Trip" = Relationship(back_populates="messages")
     user: User = Relationship(back_populates="messages")
 
@@ -77,7 +82,39 @@ class ItineraryItem(SQLModel, table=True):
     activity: str
     location: Optional[str] = None
     description: Optional[str] = None
-    
+    category: str = Field(default="Activity")  # Activity, Food, Hotel, Transport, Sightseeing
+
     trip: Trip = Relationship(back_populates="itinerary")
 
+class Document(SQLModel, table=True):
+    """Hotel bookings, flight/bus/train tickets, car rentals, etc."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    trip_id: int = Field(foreign_key="trip.id")
+    user_id: int = Field(foreign_key="user.id")
+    doc_type: str  # "hotel", "flight", "bus", "train", "car", "other"
+    title: str
+    vendor: Optional[str] = None
+    booking_ref: Optional[str] = None
+    # For hotels: check_in / check_out
+    # For transport: departure_time / arrival_time
+    date_from: Optional[str] = None   # ISO date string
+    date_to: Optional[str] = None     # ISO date string
+    from_location: Optional[str] = None
+    to_location: Optional[str] = None
+    notes: Optional[str] = None
+    file_path: Optional[str] = None   # Uploaded attachment filename
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
+    trip: Trip = Relationship(back_populates="documents")
+    user: User = Relationship(back_populates="documents")
+
+class PushSubscription(SQLModel, table=True):
+    """Web Push notification subscriptions."""
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="user.id")
+    endpoint: str
+    p256dh: str
+    auth: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+    user: User = Relationship(back_populates="push_subscriptions")

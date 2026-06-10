@@ -18,7 +18,7 @@ engine = create_async_engine(
 )
 
 async def init_db():
-    max_retries = 5
+    max_retries = 30
     for attempt in range(max_retries):
         try:
             async with engine.begin() as conn:
@@ -54,7 +54,7 @@ async def init_db():
         except Exception as e:
             logger.error(f"Database connection attempt {attempt + 1}/{max_retries} failed: {e}")
             if attempt < max_retries - 1:
-                await asyncio.sleep(5)
+                await asyncio.sleep(10)
             else:
                 raise e
 

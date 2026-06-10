@@ -9,10 +9,10 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 ## 🚀 Key Features
 
 ### 🌐 Web Application
-- **Authentication**: Secure user login and registration.
+- **Authentication**: Secure user login and registration with Google OAuth Support.
 - **Dashboard**: Overview of upcoming trips, recent activities, and itinerary management.
-- **Smart AI Maps**: Interactive maps with OSRM routing and Gemini-powered travel recommendations.
-- **Dark Mode**: Toggle between light and dark themes for comfortable viewing.
+- **Smart AI Maps**: Interactive maps with OSRM routing and Gemini 2.5 Flash powered travel recommendations.
+- **Dark Mode**: Toggle between light and dark themes with full glassmorphism design for comfortable viewing.
 - **Gallery**: Upload and download photos and videos to share memories.
 - **Real-time Chat**: Coordinate with fellow travelers instantly.
 - **PDF Export**: Generate professional trip summaries for offline use.
@@ -45,7 +45,7 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 
 2. **Install dependencies**:
    ```bash
-   pip install -r requirements.txt
+   pip install -r req.txt
    ```
 
 ## 🏃 Usage
@@ -69,6 +69,6 @@ python main.py
 - `modules/`: PyQt5 desktop application modules.
 - `main.py`: Entry point for the Desktop application.
 - `run.py`: Entry point for the Web application server.
-- `requirements.txt`: Python dependencies.
+- `req.txt`: Python dependencies.
 - `db/`: Database related files.
 - `uploads/` / `gallery/`: Storage for uploaded photos.

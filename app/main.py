@@ -7,11 +7,13 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 
 
+import asyncio
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
     from app.database import init_db
-    await init_db()
+    asyncio.create_task(init_db())
     yield
     # Shutdown cleanup (if needed in future)
 

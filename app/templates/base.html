@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Gojo Trip Planner — Your complete trip companion. Plan, collaborate, and cherish your travel memories.">
-    <meta name="theme-color" content="#4F46E5">
+    <meta name="theme-color" content="#E8584A">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Gojo">
@@ -21,7 +21,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="/static/css/design-system.css">
@@ -44,14 +44,14 @@
 
         {% if user %}
         <!-- ===== Top Navbar ===== -->
-        <nav class="navbar">
+        <nav class="navbar" id="mainNavbar">
             <div class="container">
                 <div class="navbar-container">
-                    <a href="/dashboard" class="navbar-brand" style="text-decoration:none; display:flex; align-items:center; gap:var(--space-3);">
-                        <img src="/static/images/logo1.png" alt="Gojo Logo" class="navbar-logo" style="border-radius:50%;">
-                        <div style="display:flex; flex-direction:column; justify-content:center;">
-                            <span class="brand-text" style="line-height:1;">Gojo</span>
-                            <span style="font-size:0.6rem; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; line-height:1; font-weight:var(--fw-medium); margin-top:2px;">Where Journeys Become Memories</span>
+                    <a href="/dashboard" class="navbar-brand" style="text-decoration:none;">
+                        <img src="/static/images/logo1.png" alt="Gojo Logo" class="navbar-logo">
+                        <div style="display:flex; flex-direction:column; justify-content:center; line-height:1;">
+                            <span class="brand-text">Gojo</span>
+                            <span style="font-size:0.58rem; color:var(--text-4); text-transform:uppercase; letter-spacing:0.6px; font-weight:var(--fw-semibold); margin-top:1px;">Where Journeys Become Memories</span>
                         </div>
                     </a>
 
@@ -63,12 +63,12 @@
                     </ul>
 
                     <!-- Right side controls -->
-                    <div style="display:flex;align-items:center;gap:var(--space-3);">
+                    <div style="display:flex;align-items:center;gap:var(--space-2);">
                         <!-- Theme Toggle -->
                         <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
 
                         <!-- Notifications -->
-                        <button class="btn btn-ghost btn-icon" onclick="enableNotifications()" id="notifToggle" title="Enable notifications" style="position:relative;">
+                        <button class="btn btn-ghost btn-icon" onclick="enableNotifications()" id="notifToggle" title="Enable notifications" style="position:relative; font-size:1.1rem;">
                             🔔
                         </button>
 
@@ -79,15 +79,15 @@
                             </div>
                             <div class="user-dropdown" style="display:none;" id="userDropdown">
                                 <div class="user-dropdown-header">
-                                    <div style="font-weight:var(--fw-semibold);color:var(--text);font-size:var(--text-sm);">
-                                        {{ user.full_name or 'User' }}
+                                    <div style="font-weight:var(--fw-bold);color:var(--text);font-size:var(--text-sm); margin-bottom:2px;">
+                                        {{ user.full_name or 'Traveller' }}
                                     </div>
-                                    <div style="font-size:var(--text-xs);color:var(--text-3);">{{ user.email }}</div>
+                                    <div style="font-size:var(--text-xs);color:var(--text-4);">{{ user.email }}</div>
                                 </div>
                                 <a href="/dashboard" class="user-dropdown-item">🏠 Dashboard</a>
                                 <a href="/gallery" class="user-dropdown-item">📸 Gallery</a>
                                 <a href="/maps" class="user-dropdown-item">🗺️ Maps</a>
-                                <div style="border-top:1px solid var(--border);"></div>
+                                <div style="border-top:1px solid var(--border); margin:var(--space-1) 0;"></div>
                                 <a href="/logout" class="user-dropdown-item danger">🚪 Logout</a>
                             </div>
                         </div>
@@ -113,7 +113,7 @@
                 </a>
                 <a href="/logout" class="bottom-nav-item">
                     <span class="nav-icon">👤</span>
-                    <span>Profile</span>
+                    <span>Account</span>
                 </a>
             </div>
         </nav>
@@ -122,64 +122,95 @@
         <!-- ===== Main Content ===== -->
         <main class="page-content">
             {% block content %}
-            <!-- Landing Page -->
+            <!-- ===== Landing Page ===== -->
             <div class="hero">
+                <!-- Floating decorations -->
+                <div class="hero-deco hero-deco-1">✈️</div>
+                <div class="hero-deco hero-deco-2">🌍</div>
+                <div class="hero-deco hero-deco-3">🏝️</div>
+                <div class="hero-deco hero-deco-4">🗺️</div>
+
                 <div class="hero-content container">
-                    <img src="/static/images/logo1.png" alt="Gojo Logo"
-                        style="width:140px;height:140px;border-radius:50%;margin-bottom:var(--space-8);box-shadow:var(--shadow-xl);">
-                    <h1 class="hero-title">Where Journeys<br>Become Memories</h1>
-                    <p class="hero-subtitle">Your complete trip companion — plan, collaborate, manage bookings, and keep memories forever.</p>
-                    <div style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;">
-                        <a href="/login" class="btn btn-xl" style="background:white;color:var(--primary);font-weight:var(--fw-bold);box-shadow:var(--shadow-lg);">Get Started Free</a>
-                        <a href="/register" class="btn btn-xl btn-outline" style="border-color:rgba(255,255,255,0.6);color:white;">Sign Up</a>
+                    <div class="animate-pop-in" style="margin-bottom:var(--space-8);">
+                        <img src="/static/images/logo1.png" alt="Gojo Logo"
+                            style="width:130px;height:130px;border-radius:50%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:4px solid rgba(255,255,255,0.3);">
+                    </div>
+                    <h1 class="hero-title animate-slide-up">Where Journeys<br>Become Memories</h1>
+                    <p class="hero-subtitle animate-slide-up delay-100">Your complete trip companion — plan routes, collaborate with your squad, manage bookings, and keep memories forever.</p>
+                    <div class="animate-slide-up delay-200" style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;">
+                        <a href="/login" class="btn btn-xl" style="background:white;color:var(--primary);font-weight:var(--fw-bold);box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+                            ✈️ Get Started Free
+                        </a>
+                        <a href="/register" class="btn btn-xl btn-white">
+                            🚀 Sign Up
+                        </a>
+                    </div>
+
+                    <!-- Trust indicators -->
+                    <div class="animate-fade-in delay-400" style="display:flex;gap:var(--space-6);justify-content:center;flex-wrap:wrap;margin-top:var(--space-12);padding-top:var(--space-6);border-top:1px solid rgba(255,255,255,0.2);">
+                        <div style="display:flex;align-items:center;gap:var(--space-2);color:rgba(255,255,255,0.85);font-size:var(--text-sm);">
+                            <span>✅</span> Free to use
+                        </div>
+                        <div style="display:flex;align-items:center;gap:var(--space-2);color:rgba(255,255,255,0.85);font-size:var(--text-sm);">
+                            <span>🤖</span> AI-powered
+                        </div>
+                        <div style="display:flex;align-items:center;gap:var(--space-2);color:rgba(255,255,255,0.85);font-size:var(--text-sm);">
+                            <span>📱</span> Works offline
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Features -->
+            <!-- Features Section -->
             <div class="container section">
-                <h2 class="text-center" style="margin-bottom:var(--space-10);">Everything you need for the perfect trip</h2>
+                <div style="text-align:center;margin-bottom:var(--space-12);">
+                    <div style="display:inline-flex;align-items:center;gap:var(--space-2);background:rgb(232 88 74 / 0.1);color:var(--primary);padding:var(--space-2) var(--space-4);border-radius:var(--radius-full);font-size:var(--text-sm);font-weight:var(--fw-semibold);margin-bottom:var(--space-4);">
+                        ✨ Everything in one place
+                    </div>
+                    <h2 style="margin-bottom:var(--space-4);">Built for <span class="gradient-text-brand">real travellers</span></h2>
+                    <p style="color:var(--text-3);font-size:var(--text-lg);max-width:560px;margin:0 auto;">Every feature you need to plan, coordinate, and remember your perfect trip.</p>
+                </div>
                 <div class="grid grid-cols-3" style="gap:var(--space-6);">
-                    <div class="card card-hover" style="text-align:center;">
+                    <div class="card card-hover animate-fade-in" style="text-align:center;">
                         <div class="card-body">
-                            <div style="font-size:3rem;margin-bottom:var(--space-4);">🗺️</div>
-                            <h3>Smart Maps</h3>
-                            <p class="text-muted">Interactive maps with AI-powered recommendations for hotels, restaurants, and attractions.</p>
+                            <div style="width:64px;height:64px;background:rgb(232 88 74 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">🗺️</div>
+                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Smart Maps</h3>
+                            <p class="text-muted" style="margin:0;">Interactive maps with AI-powered recommendations for hotels, restaurants, and attractions.</p>
                         </div>
                     </div>
-                    <div class="card card-hover" style="text-align:center;">
+                    <div class="card card-hover animate-fade-in delay-100" style="text-align:center;">
                         <div class="card-body">
-                            <div style="font-size:3rem;margin-bottom:var(--space-4);">💬</div>
-                            <h3>Real-time Chat</h3>
-                            <p class="text-muted">Coordinate with your travel companions instantly with live WebSocket messaging.</p>
+                            <div style="width:64px;height:64px;background:rgb(43 123 168 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">💬</div>
+                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Real-time Chat</h3>
+                            <p class="text-muted" style="margin:0;">Coordinate with your travel companions instantly with live WebSocket messaging.</p>
                         </div>
                     </div>
-                    <div class="card card-hover" style="text-align:center;">
+                    <div class="card card-hover animate-fade-in delay-200" style="text-align:center;">
                         <div class="card-body">
-                            <div style="font-size:3rem;margin-bottom:var(--space-4);">🏨</div>
-                            <h3>Booking Manager</h3>
-                            <p class="text-muted">Keep all your hotel bookings, flight tickets, and transport details in one place.</p>
+                            <div style="width:64px;height:64px;background:rgb(245 166 35 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">🏨</div>
+                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Booking Manager</h3>
+                            <p class="text-muted" style="margin:0;">Keep all your hotel bookings, flight tickets, and transport details in one place.</p>
                         </div>
                     </div>
-                    <div class="card card-hover" style="text-align:center;">
+                    <div class="card card-hover animate-fade-in delay-100" style="text-align:center;">
                         <div class="card-body">
-                            <div style="font-size:3rem;margin-bottom:var(--space-4);">📸</div>
-                            <h3>Photo Gallery</h3>
-                            <p class="text-muted">Share and cherish your travel memories together with a beautiful shared gallery.</p>
+                            <div style="width:64px;height:64px;background:rgb(76 175 80 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">📸</div>
+                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Photo Gallery</h3>
+                            <p class="text-muted" style="margin:0;">Share and cherish your travel memories together with a beautiful shared gallery.</p>
                         </div>
                     </div>
-                    <div class="card card-hover" style="text-align:center;">
+                    <div class="card card-hover animate-fade-in delay-200" style="text-align:center;">
                         <div class="card-body">
-                            <div style="font-size:3rem;margin-bottom:var(--space-4);">🤖</div>
-                            <h3>AI Itinerary</h3>
-                            <p class="text-muted">Get personalized day-by-day itinerary suggestions powered by Gemini AI.</p>
+                            <div style="width:64px;height:64px;background:rgb(124 58 237 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">🤖</div>
+                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">AI Itinerary</h3>
+                            <p class="text-muted" style="margin:0;">Get personalized day-by-day itinerary suggestions powered by Gemini AI.</p>
                         </div>
                     </div>
-                    <div class="card card-hover" style="text-align:center;">
+                    <div class="card card-hover animate-fade-in delay-300" style="text-align:center;">
                         <div class="card-body">
-                            <div style="font-size:3rem;margin-bottom:var(--space-4);">📱</div>
-                            <h3>Install as App</h3>
-                            <p class="text-muted">Install Gojo on your phone for a native-like experience, even offline.</p>
+                            <div style="width:64px;height:64px;background:rgb(13 148 136 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">📱</div>
+                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Install as App</h3>
+                            <p class="text-muted" style="margin:0;">Install Gojo on your phone for a native-like experience, even offline.</p>
                         </div>
                     </div>
                 </div>
@@ -197,13 +228,13 @@
 
     <!-- ===== Install Banner (PWA) ===== -->
     <div id="installBanner" class="install-banner install-banner-hidden">
-        <img src="/static/images/icon-192.png" style="width:48px;height:48px;border-radius:var(--radius-md);" alt="Gojo">
+        <img src="/static/images/icon-192.png" style="width:46px;height:46px;border-radius:var(--radius-lg);" alt="Gojo">
         <div style="flex:1;">
-            <div style="font-weight:var(--fw-semibold);font-size:var(--text-sm);color:var(--text);">Install Gojo</div>
+            <div style="font-weight:var(--fw-bold);font-size:var(--text-sm);color:var(--text);">Install Gojo</div>
             <div style="font-size:var(--text-xs);color:var(--text-3);">Add to home screen for quick access</div>
         </div>
-        <button class="btn btn-primary btn-sm" onclick="installApp()">Install</button>
-        <button class="btn btn-ghost btn-icon btn-sm" onclick="document.getElementById('installBanner').classList.add('install-banner-hidden')">✕</button>
+        <button class="btn btn-brand btn-sm" onclick="installApp()">Install</button>
+        <button class="btn btn-ghost btn-icon btn-sm" onclick="document.getElementById('installBanner').classList.add('install-banner-hidden')" style="min-width:32px;">✕</button>
     </div>
 
     <!-- ===== Scripts ===== -->
@@ -222,6 +253,18 @@
                 if (menu) menu.style.display = 'none';
             }
         });
+
+        // Navbar scroll effect
+        const navbar = document.getElementById('mainNavbar');
+        if (navbar) {
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 10) {
+                    navbar.classList.add('scrolled');
+                } else {
+                    navbar.classList.remove('scrolled');
+                }
+            }, { passive: true });
+        }
 
         {% if error %}
         window.addEventListener('DOMContentLoaded', () => {

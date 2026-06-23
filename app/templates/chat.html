@@ -4,14 +4,14 @@
 {% block extra_css %}
 <style>
   .chat-page-container {
-    height: calc(100vh - 64px);
+    height: calc(100vh - 66px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
   }
   @media (max-width: 768px) {
     .chat-page-container {
-      height: calc(100vh - 64px - 64px);
+      height: calc(100vh - 66px - 66px);
     }
   }
 </style>
@@ -20,64 +20,70 @@
 {% block content %}
 <div class="chat-page-container">
 
-    <!-- Chat Header -->
-    <div style="background:var(--surface);border-bottom:1px solid var(--border);padding:var(--space-3) var(--space-5);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+    <!-- ===== Chat Header ===== -->
+    <div class="chat-header">
         <div style="display:flex;align-items:center;gap:var(--space-3);">
-            <a href="/trip/{{ trip.id }}" class="btn btn-ghost btn-sm">←</a>
-            <div class="avatar" style="width:36px;height:36px;font-size:var(--text-sm);">
+            <a href="/trip/{{ trip.id }}" class="btn btn-ghost btn-sm btn-icon" title="Back to trip">
+                ←
+            </a>
+            <!-- Trip avatar -->
+            <div class="avatar" style="background:var(--gradient-sunset);">
                 {{ trip.name[0].upper() }}
             </div>
             <div>
-                <div style="font-weight:var(--fw-semibold);font-size:var(--text-sm);line-height:1.2;">{{ trip.name }}</div>
-                <div style="font-size:var(--text-xs);color:var(--text-3);">{{ trip.destination }}</div>
+                <div style="font-weight:var(--fw-bold);font-size:var(--text-sm);line-height:1.2;color:var(--text);">{{ trip.name }}</div>
+                <div style="font-size:var(--text-xs);color:var(--text-4);">📍 {{ trip.destination }}</div>
             </div>
         </div>
 
         <div style="display:flex;align-items:center;gap:var(--space-3);">
             <!-- Online users -->
-            <div id="onlineUsers" style="display:flex;gap:var(--space-1);flex-wrap:wrap;"></div>
+            <div id="onlineUsers" style="display:flex;gap:4px;flex-wrap:wrap;"></div>
             <!-- Connection status -->
-            <span id="connectionStatus" class="badge badge-gray" style="font-size:10px;">🔴 Connecting...</span>
+            <span id="connectionStatus" class="badge badge-gray" style="font-size:10px;transition:all var(--ease);">🔴 Connecting...</span>
         </div>
     </div>
 
-    <!-- Messages -->
-    <div id="chatMessages" class="chat-messages" style="background:var(--bg);flex:1;overflow-y:auto;padding:var(--space-5);">
+    <!-- ===== Messages ===== -->
+    <div id="chatMessages" class="chat-messages">
         {% for msg in messages %}
         <div class="chat-message-row {{ 'own' if msg.user_id == user.id else 'other' }}" id="msg-{{ msg.id }}">
             {% if msg.user_id != user.id %}
-            <div class="avatar avatar-sm">{{ msg.user_initial }}</div>
+            <div class="avatar avatar-sm" style="background:linear-gradient(135deg, var(--secondary), var(--secondary-light));box-shadow:0 2px 6px rgb(43 123 168 / 0.3);">
+                {{ msg.user_initial }}
+            </div>
             {% endif %}
-            <div style="display:flex;flex-direction:column;max-width:75%;">
+            <div style="display:flex;flex-direction:column;max-width:72%;">
                 {% if msg.user_id != user.id %}
-                <span style="font-size:11px;color:var(--text-3);margin-bottom:3px;font-weight:600;">{{ msg.user_name }}</span>
+                <span style="font-size:11px;color:var(--text-3);margin-bottom:4px;font-weight:var(--fw-semibold);padding-left:var(--space-2);">{{ msg.user_name }}</span>
                 {% endif %}
                 <div class="chat-bubble {{ 'own' if msg.user_id == user.id else 'other' }}">{{ msg.content }}</div>
                 <span class="chat-meta">{{ msg.timestamp }}</span>
             </div>
             {% if msg.user_id == user.id %}
-            <div class="avatar avatar-sm">{{ msg.user_initial }}</div>
+            <div class="avatar avatar-sm" style="background:var(--gradient-brand);">{{ msg.user_initial }}</div>
             {% endif %}
         </div>
         {% else %}
-        <div style="text-align:center;padding:var(--space-10);">
-            <div style="font-size:3rem;margin-bottom:var(--space-3);">💬</div>
-            <p style="color:var(--text-3);">No messages yet. Start the conversation!</p>
+        <div style="text-align:center;padding:var(--space-12) var(--space-8);">
+            <div style="font-size:3rem;margin-bottom:var(--space-4);animation:floatY 3s ease-in-out infinite;">💬</div>
+            <div style="font-weight:var(--fw-semibold);color:var(--text-2);margin-bottom:var(--space-2);">No messages yet</div>
+            <p style="color:var(--text-4);font-size:var(--text-sm);margin:0;">Start the conversation with your travel squad!</p>
         </div>
         {% endfor %}
     </div>
 
-    <!-- Input Area -->
+    <!-- ===== Input Area ===== -->
     <div class="chat-input-area">
         <textarea
             id="chatInputField"
             class="chat-input"
-            placeholder="Type a message..."
+            placeholder="Type a message... (Enter to send)"
             rows="1"
             onkeydown="handleChatKey(event)"
             oninput="autoResize(this)"
         ></textarea>
-        <button class="btn btn-primary" onclick="sendChatMessage()" id="sendBtn" style="border-radius:var(--radius-full);width:44px;height:44px;padding:0;flex-shrink:0;">
+        <button class="chat-send-btn" onclick="sendChatMessage()" id="sendBtn" title="Send message">
             ➤
         </button>
     </div>

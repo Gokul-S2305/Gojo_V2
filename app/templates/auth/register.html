@@ -6,30 +6,46 @@
 
     <!-- Left Hero Panel -->
     <div class="auth-hero">
-        <div class="auth-hero-content">
-            <img src="/static/images/logo1.png" alt="Gojo Logo"
-                style="width:100px;height:100px;border-radius:50%;margin-bottom:var(--space-6);box-shadow:0 10px 30px rgba(0,0,0,0.2);">
-            <h1>Start Your<br>Adventure!</h1>
-            <p>Join thousands of travellers using Gojo to plan, coordinate, and remember their best trips.</p>
+        <div class="auth-hero-content animate-fade-in">
+            <div class="animate-pop-in" style="margin-bottom:var(--space-6);">
+                <img src="/static/images/logo1.png" alt="Gojo Logo"
+                    style="width:100px;height:100px;border-radius:50%;box-shadow:0 12px 40px rgba(0,0,0,0.25);border:3px solid rgba(255,255,255,0.35);">
+            </div>
 
-            <div style="margin-top:var(--space-10);background:rgba(255,255,255,0.1);border-radius:var(--radius-xl);padding:var(--space-6);">
-                <p style="color:rgba(255,255,255,0.9);margin:0;font-size:var(--text-sm);line-height:1.8;">
-                    ✅ Free to use<br>
-                    ✅ Invite friends with a code<br>
-                    ✅ AI-powered itinerary planning<br>
-                    ✅ Real-time chat & notifications<br>
-                    ✅ Installable on your phone
-                </p>
+            <h1 style="color:white;margin-bottom:var(--space-3);">Start Your<br>Adventure!</h1>
+            <p style="color:rgba(255,255,255,0.85);margin-bottom:var(--space-8);max-width:340px;">Join travellers using Gojo to plan, coordinate, and remember their best trips.</p>
+
+            <!-- Benefits -->
+            <div style="background:rgba(255,255,255,0.1);border-radius:var(--radius-2xl);padding:var(--space-6);border:1px solid rgba(255,255,255,0.15);backdrop-filter:blur(4px);">
+                <div style="font-weight:var(--fw-bold);color:white;margin-bottom:var(--space-4);font-size:var(--text-sm);text-transform:uppercase;letter-spacing:0.06em;">What you get:</div>
+                <div style="display:flex;flex-direction:column;gap:var(--space-3);">
+                    {% set perks = [
+                        ('✅', 'Completely free to use'),
+                        ('👥', 'Invite friends with a code'),
+                        ('🤖', 'AI-powered itinerary planning'),
+                        ('💬', 'Real-time chat & notifications'),
+                        ('📸', 'Shared photo memories'),
+                        ('📱', 'Installable on your phone')
+                    ] %}
+                    {% for icon, text in perks %}
+                    <div class="animate-slide-right" style="animation-delay:{{ loop.index * 80 }}ms;display:flex;align-items:center;gap:var(--space-3);">
+                        <span style="font-size:1rem;">{{ icon }}</span>
+                        <span style="color:rgba(255,255,255,0.9);font-size:var(--text-sm);font-weight:var(--fw-medium);">{{ text }}</span>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Right Form Panel -->
     <div class="auth-form-side">
-        <div class="auth-form-container">
+        <div class="auth-form-container animate-fade-in">
 
-            <h2 style="margin-bottom:var(--space-2);">Create Account</h2>
-            <p style="color:var(--text-3);margin-bottom:var(--space-8);">Already have an account? <a href="/login">Sign In</a></p>
+            <div style="margin-bottom:var(--space-8);">
+                <h2 style="margin-bottom:var(--space-1);font-size:var(--text-3xl);">Create Account</h2>
+                <p style="color:var(--text-3);margin:0;">Already have an account? <a href="/login" style="color:var(--primary);font-weight:var(--fw-semibold);">Sign In →</a></p>
+            </div>
 
             {% if error %}
             <div class="alert alert-error" style="margin-bottom:var(--space-5);">
@@ -39,59 +55,61 @@
             {% endif %}
 
             <!-- Google OAuth -->
-            <a href="/login/google" class="btn btn-block btn-ghost" style="margin-bottom:var(--space-4);border:2px solid var(--border);justify-content:center;gap:var(--space-3);">
+            <a href="/login/google" class="btn-google">
                 <svg width="18" height="18" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
                     <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
                     <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
                     <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
                 </svg>
-                Continue with Google
+                Sign up with Google
             </a>
 
             <!-- Divider -->
-            <div style="display:flex;align-items:center;gap:var(--space-4);margin:var(--space-5) 0;">
-                <div style="flex:1;height:1px;background:var(--border);"></div>
-                <span style="font-size:var(--text-sm);color:var(--text-3);">or register with email</span>
-                <div style="flex:1;height:1px;background:var(--border);"></div>
+            <div class="auth-divider">
+                <div class="auth-divider-line"></div>
+                <span class="auth-divider-text">or register with email</span>
+                <div class="auth-divider-line"></div>
             </div>
 
             <!-- Registration Form -->
-            <form action="/register" method="post">
+            <form action="/register" method="post" id="registerForm">
                 <div class="form-group">
                     <label class="form-label" for="reg-name">Full Name</label>
-                    <input type="text" id="reg-name" name="full_name" class="form-control" placeholder="Your name" required autocomplete="name">
+                    <input type="text" id="reg-name" name="full_name" class="form-control"
+                        placeholder="Your full name" required autocomplete="name">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="reg-email">Email Address</label>
-                    <input type="email" id="reg-email" name="email" class="form-control" placeholder="you@example.com" required autocomplete="email">
+                    <input type="email" id="reg-email" name="email" class="form-control"
+                        placeholder="you@example.com" required autocomplete="email">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="reg-password">Password</label>
                     <div style="position:relative;">
                         <input type="password" id="reg-password" name="password" class="form-control"
-                            placeholder="Min. 8 characters" required
-                            minlength="8" autocomplete="new-password"
-                            oninput="checkPasswordStrength(this.value)">
+                            placeholder="Min. 8 characters" required minlength="8"
+                            autocomplete="new-password"
+                            oninput="checkPasswordStrength(this.value)"
+                            style="padding-right:48px;">
                         <button type="button"
-                            style="position:absolute;right:var(--space-3);top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);font-size:var(--text-lg);"
+                            style="position:absolute;right:var(--space-3);top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-3);font-size:1.1rem;padding:var(--space-1);border-radius:var(--radius-sm);"
                             onclick="togglePassword('reg-password', this)">👁️</button>
                     </div>
-                    <!-- Password strength bar -->
-                    <div id="pwStrengthBar" style="height:4px;border-radius:var(--radius-full);background:var(--border);margin-top:6px;overflow:hidden;">
-                        <div id="pwStrengthFill" style="height:100%;width:0%;border-radius:var(--radius-full);transition:width 0.3s,background 0.3s;background:var(--rose);"></div>
+                    <!-- Password strength -->
+                    <div id="pwStrengthBar" style="height:5px;border-radius:var(--radius-full);background:var(--border);margin-top:var(--space-2);overflow:hidden;">
+                        <div id="pwStrengthFill" style="height:100%;width:0%;border-radius:var(--radius-full);transition:width 0.35s,background 0.35s;background:var(--rose);"></div>
                     </div>
-                    <div id="pwStrengthText" class="form-hint"></div>
+                    <div id="pwStrengthText" class="form-hint" style="min-height:16px;"></div>
                 </div>
 
-                <button type="submit" class="btn btn-primary btn-block btn-lg" id="registerBtn">
+                <button type="submit" class="btn btn-brand btn-block btn-lg" id="registerBtn">
                     Create Account 🚀
                 </button>
             </form>
 
-            <p style="text-align:center;margin-top:var(--space-6);color:var(--text-3);font-size:var(--text-sm);">
-                By creating an account, you agree to our
-                <span style="color:var(--primary);">Terms of Service</span>.
+            <p style="text-align:center;margin-top:var(--space-6);color:var(--text-4);font-size:var(--text-xs);">
+                By creating an account, you agree to our <a href="#" style="color:var(--primary);">Terms of Service</a> and <a href="#" style="color:var(--primary);">Privacy Policy</a>.
             </p>
 
         </div>
@@ -118,19 +136,20 @@ function checkPasswordStrength(password) {
     if (/[0-9]/.test(password)) strength++;
     if (/[^A-Za-z0-9]/.test(password)) strength++;
 
-    const colors = ['#EF4444', '#F59E0B', '#10B981', '#4F46E5'];
-    const labels = ['Weak', 'Fair', 'Good', 'Strong'];
+    const colors = ['var(--rose)', 'var(--amber)', 'var(--secondary)', 'var(--emerald)'];
+    const labels = ['Weak — add uppercase & numbers', 'Fair — add a special character', 'Good — looking solid!', '💪 Strong password!'];
     const widths = ['25%', '50%', '75%', '100%'];
 
     fill.style.width = widths[strength - 1] || '0%';
     fill.style.background = colors[strength - 1] || 'var(--border)';
     text.textContent = strength > 0 ? labels[strength - 1] : '';
+    text.style.color = colors[strength - 1] || 'var(--text-4)';
 }
 
-document.querySelector('form')?.addEventListener('submit', () => {
+document.getElementById('registerForm')?.addEventListener('submit', () => {
     const btn = document.getElementById('registerBtn');
     if (btn) {
-        btn.textContent = 'Creating account...';
+        btn.innerHTML = '<span class="spinner" style="width:18px;height:18px;border-width:2px;"></span> Creating account...';
         btn.disabled = true;
     }
 });

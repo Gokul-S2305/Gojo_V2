@@ -2,46 +2,57 @@
 {% block title %}{{ trip.name if trip else 'Gallery' }} | Gojo{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top:var(--space-6);">
+<div class="container" style="padding-top:var(--space-6);padding-bottom:var(--space-8);">
 
     {% if trip %}
-    <!-- Gallery Header -->
-    <div class="gallery-header">
+    <!-- ===== Gallery Header ===== -->
+    <div class="gallery-header animate-fade-in">
         <div>
-            <div style="display:flex;align-items:center;gap:var(--space-3);">
+            <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-2);">
                 <a href="/trip/{{ trip.id }}" class="btn btn-ghost btn-sm">← Back</a>
-                <h1 style="margin:0;">📸 {{ trip.name }}</h1>
+                <div>
+                    <h1 style="margin:0;font-size:var(--text-2xl);">📸 {{ trip.name }}</h1>
+                </div>
             </div>
-            <p style="color:var(--text-3);margin:var(--space-1) 0 0;">{{ photos | length }} photo{{ 's' if photos | length != 1 }}</p>
+            <p style="color:var(--text-3);margin:0;font-size:var(--text-sm);">
+                {{ photos | length }} photo{{ 's' if photos | length != 1 }}
+                {% if photos | length > 0 %} · Click any photo to view full size{% endif %}
+            </p>
         </div>
-        <button class="btn btn-primary" onclick="openModal('uploadModal')">
-            📤 Upload Photo
+        <button class="btn btn-brand" onclick="openModal('uploadModal')">
+            📤 Upload
         </button>
     </div>
 
-    <!-- Photo Grid -->
+    <!-- ===== Photo Grid ===== -->
     {% if photos %}
     <div class="photo-grid">
         {% for photo in photos %}
-        <div class="photo-item" onclick="openPhoto('/uploads/{{ trip.id }}/{{ photo.filename }}', '{{ photo.media_type }}')">
+        <div class="photo-item animate-fade-in" style="animation-delay:{{ loop.index * 50 }}ms;"
+             onclick="openPhoto('/uploads/{{ trip.id }}/{{ photo.filename }}', '{{ photo.media_type }}')">
+
             {% if photo.media_type == 'video' %}
-            <video src="/uploads/{{ trip.id }}/{{ photo.filename }}" preload="metadata" style="width:100%;height:100%;object-fit:cover;"></video>
-            <div style="position:absolute;bottom:6px;left:6px;background:rgba(0,0,0,0.6);color:white;border-radius:var(--radius-full);padding:2px 8px;font-size:10px;">🎬 Video</div>
+            <video src="/uploads/{{ trip.id }}/{{ photo.filename }}" preload="metadata"
+                   style="width:100%;height:100%;object-fit:cover;"></video>
+            <div style="position:absolute;top:var(--space-2);left:var(--space-2);background:rgba(0,0,0,0.65);color:white;border-radius:var(--radius-full);padding:3px 10px;font-size:10px;font-weight:var(--fw-semibold);">🎬 Video</div>
             {% else %}
             <img src="/uploads/{{ trip.id }}/{{ photo.filename }}" alt="{{ photo.caption or 'Photo' }}" loading="lazy">
             {% endif %}
+
             <div class="photo-overlay">
-                <div style="display:flex;gap:var(--space-2);">
-                    <button class="btn btn-sm" style="background:white;color:var(--text);">🔍 View</button>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:var(--space-2);">
+                    <button class="btn btn-sm" style="background:white;color:var(--text);border-radius:var(--radius-full);">🔍 View</button>
                     {% if photo.user_id == user.id %}
                     <form action="/trip/{{ trip.id }}/photo/{{ photo.id }}/delete" method="post" onclick="event.stopPropagation();">
-                        <button type="submit" class="btn btn-sm btn-danger" onclick="return confirm('Delete this photo?')">🗑️</button>
+                        <button type="submit" class="btn btn-sm btn-danger" style="border-radius:var(--radius-full);"
+                                onclick="return confirm('Delete this photo?')">🗑️ Delete</button>
                     </form>
                     {% endif %}
                 </div>
             </div>
+
             {% if photo.caption %}
-            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.7),transparent);color:white;font-size:11px;padding:var(--space-2) var(--space-3);">
+            <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(0,0,0,0.75),transparent);color:white;font-size:11px;font-weight:var(--fw-medium);padding:var(--space-4) var(--space-3) var(--space-2);line-height:1.4;">
                 {{ photo.caption }}
             </div>
             {% endif %}
@@ -50,15 +61,15 @@
     </div>
     {% else %}
     <!-- Drop Zone (when empty) -->
-    <div id="uploadZone" class="upload-zone" onclick="openModal('uploadModal')">
-        <div style="font-size:3rem;margin-bottom:var(--space-4);">📸</div>
-        <div style="font-weight:var(--fw-semibold);color:var(--text-2);margin-bottom:var(--space-2);">Drop photos or videos here</div>
-        <p style="color:var(--text-3);">or click to upload your first memory!</p>
-        <div class="btn btn-primary" style="margin-top:var(--space-4);">Upload Photo</div>
+    <div id="uploadZone" class="upload-zone animate-fade-in" onclick="openModal('uploadModal')">
+        <div style="font-size:3.5rem;margin-bottom:var(--space-4);animation:floatY 3s ease-in-out infinite;display:inline-block;">📸</div>
+        <div style="font-weight:var(--fw-bold);color:var(--text-2);margin-bottom:var(--space-2);font-size:var(--text-lg);">No photos yet</div>
+        <p style="color:var(--text-4);font-size:var(--text-sm);margin-bottom:var(--space-5);">Drop photos here or click to upload your first memory!</p>
+        <div class="btn btn-brand">📤 Upload Photo</div>
     </div>
     {% endif %}
 
-    <!-- Upload Modal -->
+    <!-- ===== Upload Modal ===== -->
     <div id="uploadModal" class="modal-backdrop">
         <div class="modal">
             <div class="modal-header">
@@ -66,21 +77,21 @@
                 <button class="modal-close" onclick="closeModal('uploadModal')">✕</button>
             </div>
             <div class="modal-body">
-                <form action="/trip/{{ trip.id }}/upload" method="post" enctype="multipart/form-data">
+                <form action="/trip/{{ trip.id }}/upload" method="post" enctype="multipart/form-data" id="uploadForm">
                     <div id="uploadZoneSmall" class="upload-zone" style="padding:var(--space-8);margin-bottom:var(--space-4);">
-                        <div style="font-size:2rem;margin-bottom:var(--space-2);">📷</div>
-                        <div class="upload-label" style="font-weight:var(--fw-medium);color:var(--text-2);">Click to select photo or video</div>
-                        <p style="font-size:var(--text-xs);color:var(--text-3);">JPEG, PNG, GIF, WebP, MP4 • Max 10MB</p>
+                        <div style="font-size:2.5rem;margin-bottom:var(--space-3);">📷</div>
+                        <div class="upload-label" style="font-weight:var(--fw-semibold);color:var(--text-2);margin-bottom:var(--space-2);">Click to select photo or video</div>
+                        <p style="font-size:var(--text-xs);color:var(--text-4);margin:0;">JPEG, PNG, GIF, WebP, MP4 · Max 10MB</p>
                         <div id="uploadPreview" style="margin-top:var(--space-3);"></div>
                     </div>
                     <input type="file" id="photoInput" name="photo" accept="image/*,video/*" style="display:none;" required>
                     <div class="form-group">
-                        <label class="form-label">Caption (optional)</label>
+                        <label class="form-label">Caption <span style="color:var(--text-4);font-weight:var(--fw-normal);">(optional)</span></label>
                         <input type="text" name="caption" class="form-control" placeholder="Describe this moment...">
                     </div>
                     <div style="display:flex;gap:var(--space-3);">
                         <button type="button" class="btn btn-ghost btn-block" onclick="closeModal('uploadModal')">Cancel</button>
-                        <button type="submit" class="btn btn-primary btn-block">Upload</button>
+                        <button type="submit" class="btn btn-brand btn-block" id="uploadBtn">📤 Upload</button>
                     </div>
                 </form>
             </div>
@@ -91,7 +102,7 @@
     <div class="empty-state">
         <div class="empty-state-icon">📸</div>
         <div class="empty-state-title">No Trips Yet</div>
-        <p><a href="/dashboard">Create a trip</a> to start adding photos!</p>
+        <p><a href="/dashboard" class="btn btn-brand btn-sm" style="display:inline-flex;margin-top:var(--space-2);">Create a trip →</a></p>
     </div>
     {% endif %}
 
@@ -107,6 +118,30 @@
     function openPhoto(src, mediaType) {
         GojoApp.lightbox.open(src, mediaType === 'video');
     }
+
+    // Show file name when selected
+    document.getElementById('photoInput')?.addEventListener('change', function() {
+        const preview = document.getElementById('uploadPreview');
+        if (this.files[0] && preview) {
+            const file = this.files[0];
+            const isImage = file.type.startsWith('image/');
+            preview.innerHTML = `
+                <div style="display:flex;align-items:center;gap:var(--space-2);background:rgb(232 88 74 / 0.08);border:1px solid rgb(232 88 74 / 0.2);border-radius:var(--radius-lg);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);color:var(--primary);">
+                    <span>${isImage ? '🖼️' : '🎬'}</span>
+                    <span style="font-weight:var(--fw-semibold);">${file.name}</span>
+                    <span style="color:var(--text-4);">(${(file.size / 1024 / 1024).toFixed(1)} MB)</span>
+                </div>`;
+        }
+    });
+
+    // Upload loading state
+    document.getElementById('uploadForm')?.addEventListener('submit', () => {
+        const btn = document.getElementById('uploadBtn');
+        if (btn) {
+            btn.innerHTML = '<span class="spinner" style="width:16px;height:16px;border-width:2px;"></span> Uploading...';
+            btn.disabled = true;
+        }
+    });
     {% endif %}
 </script>
 {% endblock %}

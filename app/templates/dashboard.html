@@ -2,39 +2,46 @@
 {% block title %}Dashboard | Gojo Trip Planner{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top:var(--space-6);padding-bottom:var(--space-6);">
+<div class="container" style="padding-top:var(--space-6);padding-bottom:var(--space-8);">
 
-    <!-- Header -->
-    <div class="dashboard-header">
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:var(--space-4);">
-            <div>
-                <h1 style="margin-bottom:var(--space-1);">Hello, {{ user.full_name.split(' ')[0] if user.full_name else 'Traveller' }} ✈️</h1>
-                <p style="margin:0;color:var(--text-3);">Ready for your next adventure?</p>
+    <!-- ===== Welcome Banner ===== -->
+    <div class="dashboard-welcome animate-fade-in">
+        <div class="dashboard-welcome-content">
+            <div style="position:relative;z-index:1;">
+                <p style="color:rgba(255,255,255,0.75);font-size:var(--text-sm);font-weight:var(--fw-semibold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:var(--space-1);">👋 Welcome back</p>
+                <h1 style="color:white;margin-bottom:var(--space-1);font-size:clamp(1.6rem,4vw,2.25rem);">
+                    {{ user.full_name.split(' ')[0] if user.full_name else 'Traveller' }}! ✈️
+                </h1>
+                <p style="color:rgba(255,255,255,0.8);margin:0;font-size:var(--text-base);">Ready for your next adventure?</p>
             </div>
-            <div>
-                <button class="btn btn-outline btn-sm" onclick="document.getElementById('profileModal').style.display='flex'">⚙️ Edit Profile</button>
+            <div style="display:flex;gap:var(--space-3);position:relative;z-index:1;">
+                <button class="btn btn-white btn-sm" onclick="document.getElementById('profileModal').style.display='flex'">
+                    ⚙️ Edit Profile
+                </button>
             </div>
         </div>
+        <!-- Decorative plane -->
+        <div style="position:absolute;right:var(--space-8);top:50%;transform:translateY(-50%);font-size:5rem;opacity:0.1;animation:planeFloat 4s ease-in-out infinite;pointer-events:none;">✈️</div>
     </div>
 
-    <!-- Stats Banner -->
+    <!-- ===== Stats ===== -->
     <div class="dashboard-stats">
         <div class="stat-card animate-fade-in">
-            <div class="stat-icon" style="background:rgb(79 70 229 / 0.1);">✈️</div>
+            <div class="stat-icon" style="background:rgb(232 88 74 / 0.12);">✈️</div>
             <div>
                 <div class="stat-value">{{ trips | length }}</div>
                 <div class="stat-label">Total Trips</div>
             </div>
         </div>
-        <div class="stat-card animate-fade-in" style="animation-delay:50ms;">
-            <div class="stat-icon" style="background:rgb(16 185 129 / 0.1);">🌍</div>
+        <div class="stat-card animate-fade-in delay-100">
+            <div class="stat-icon" style="background:rgb(43 123 168 / 0.12);">🌍</div>
             <div>
                 <div class="stat-value">{{ trips | selectattr('start_date', 'ge', today) | list | length if today else trips | length }}</div>
                 <div class="stat-label">Upcoming</div>
             </div>
         </div>
-        <div class="stat-card animate-fade-in" style="animation-delay:100ms;">
-            <div class="stat-icon" style="background:rgb(245 158 11 / 0.1);">👥</div>
+        <div class="stat-card animate-fade-in delay-200">
+            <div class="stat-icon" style="background:rgb(245 166 35 / 0.12);">🏆</div>
             <div>
                 <div class="stat-value">{{ trips | length }}</div>
                 <div class="stat-label">Adventures</div>
@@ -42,13 +49,19 @@
         </div>
     </div>
 
-    <!-- Action Cards -->
+    <!-- ===== Create & Join Cards ===== -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-5);margin-bottom:var(--space-8);">
 
         <!-- Create Trip -->
         <div class="card animate-slide-up">
-            <div class="card-header" style="background:linear-gradient(135deg,var(--primary),var(--cyan));color:white;border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
-                <span style="color:white;font-weight:var(--fw-semibold);">✈️ Create a New Trip</span>
+            <div style="padding:var(--space-5) var(--space-6);background:var(--gradient-brand);border-radius:var(--radius-xl) var(--radius-xl) 0 0;">
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                    <div style="width:42px;height:42px;background:rgba(255,255,255,0.2);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">✈️</div>
+                    <div>
+                        <div style="color:white;font-weight:var(--fw-bold);font-size:var(--text-base);">Create a New Trip</div>
+                        <div style="color:rgba(255,255,255,0.75);font-size:var(--text-xs);">Plan your next adventure</div>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
                 <form action="/trip/create" method="post">
@@ -61,7 +74,7 @@
                         <input type="text" name="destination" class="form-control" placeholder="e.g. Goa, India" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Starting Point (optional)</label>
+                        <label class="form-label">Starting Point <span style="color:var(--text-4);font-weight:var(--fw-normal);">(optional)</span></label>
                         <input type="text" name="start_location" class="form-control" placeholder="e.g. Mumbai">
                     </div>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
@@ -74,43 +87,56 @@
                             <input type="date" name="end_date" class="form-control" required>
                         </div>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Create Trip</button>
+                    <button type="submit" class="btn btn-brand btn-block">
+                        ✈️ Create Trip
+                    </button>
                 </form>
             </div>
         </div>
 
         <!-- Join Trip -->
-        <div class="card animate-slide-up" style="animation-delay:100ms;">
-            <div class="card-header" style="background:linear-gradient(135deg,var(--emerald),var(--cyan));color:white;border-radius:var(--radius-lg) var(--radius-lg) 0 0;">
-                <span style="color:white;font-weight:var(--fw-semibold);">🤝 Join a Trip</span>
+        <div class="card animate-slide-up delay-100">
+            <div style="padding:var(--space-5) var(--space-6);background:var(--gradient-cool);border-radius:var(--radius-xl) var(--radius-xl) 0 0;">
+                <div style="display:flex;align-items:center;gap:var(--space-3);">
+                    <div style="width:42px;height:42px;background:rgba(255,255,255,0.2);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;font-size:1.3rem;">🤝</div>
+                    <div>
+                        <div style="color:white;font-weight:var(--fw-bold);font-size:var(--text-base);">Join a Trip</div>
+                        <div style="color:rgba(255,255,255,0.75);font-size:var(--text-xs);">Enter your friend's code</div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body" style="display:flex;flex-direction:column;justify-content:center;height:100%;">
-                <p style="color:var(--text-3);margin-bottom:var(--space-6);">Enter the 6-character code shared by your travel buddy to join their adventure.</p>
+            <div class="card-body" style="display:flex;flex-direction:column;justify-content:center;">
+                <p style="color:var(--text-3);margin-bottom:var(--space-5);font-size:var(--text-sm);">Enter the 6-character code shared by your travel buddy to join their adventure.</p>
                 <form action="/trip/join" method="post">
                     <div class="form-group">
                         <label class="form-label">Join Code</label>
                         <input type="text" name="join_code" class="form-control"
                             placeholder="ABCDE1"
-                            style="text-align:center;font-family:var(--font-mono);font-size:var(--text-xl);font-weight:var(--fw-bold);letter-spacing:6px;text-transform:uppercase;"
+                            style="text-align:center;font-family:var(--font-mono);font-size:var(--text-2xl);font-weight:var(--fw-extrabold);letter-spacing:8px;text-transform:uppercase;padding:var(--space-4);"
                             maxlength="6" required>
                     </div>
-                    <button type="submit" class="btn btn-success btn-block">Join Trip 🚀</button>
+                    <button type="submit" class="btn btn-secondary btn-block">
+                        Join Trip 🚀
+                    </button>
                 </form>
-
-                <!-- Quick invite info -->
                 <div class="alert alert-info" style="margin-top:var(--space-4);">
-                    <span>ℹ️</span>
+                    <span>💡</span>
                     <span>Share your trip code with friends so they can join from anywhere!</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Trips List -->
+    <!-- ===== Trips List ===== -->
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-5);">
-        <h2 style="margin:0;">Your Trips</h2>
+        <div>
+            <h2 style="margin:0;font-size:var(--text-2xl);">Your Trips</h2>
+            <p style="margin:0;color:var(--text-3);font-size:var(--text-sm);">All your adventures, past and future</p>
+        </div>
         {% if trips %}
-        <span class="badge badge-primary">{{ trips | length }} trip{{ 's' if trips | length != 1 }}</span>
+        <span class="badge badge-primary" style="font-size:var(--text-sm);padding:var(--space-2) var(--space-4);">
+            {{ trips | length }} trip{{ 's' if trips | length != 1 }}
+        </span>
         {% endif %}
     </div>
 
@@ -118,40 +144,45 @@
     <div class="trips-grid">
         {% for trip in trips %}
         {% set today_date = today %}
-        {% set is_active = trip.start_date <= today_date <= trip.end_date if today_date else False %}
+        {% set is_active   = trip.start_date <= today_date <= trip.end_date if today_date else False %}
         {% set is_upcoming = trip.start_date > today_date if today_date else True %}
-        <a href="/trip/{{ trip.id }}" class="trip-card" style="text-decoration:none;">
-            <div class="trip-card-header">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-3);">
-                    <span class="badge" style="background:rgba(255,255,255,0.2);color:white;">
-                        {% if is_active %}🟢 Active{% elif is_upcoming %}🔵 Upcoming{% else %}⚪ Past{% endif %}
-                    </span>
-                    <span style="font-family:var(--font-mono);font-size:var(--text-xs);background:rgba(0,0,0,0.2);color:white;padding:2px 8px;border-radius:var(--radius-full);">
-                        {{ trip.join_code }}
-                    </span>
+        {% set gradients = ['', 'ocean', 'warm', 'sunset', 'cool'] %}
+        {% set grad_class = gradients[loop.index % gradients | length] %}
+
+        <a href="/trip/{{ trip.id }}" class="trip-card animate-fade-in" style="animation-delay:{{ loop.index * 60 }}ms;">
+            <div class="trip-card-header {{ grad_class }}">
+                <div style="position:relative;z-index:1;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:var(--space-3);">
+                        <span class="badge badge-white">
+                            {% if is_active %}🟢 Active{% elif is_upcoming %}🔵 Upcoming{% else %}⚪ Past{% endif %}
+                        </span>
+                        <span style="font-family:var(--font-mono);font-size:var(--text-xs);background:rgba(0,0,0,0.2);color:white;padding:3px 10px;border-radius:var(--radius-full);letter-spacing:2px;">
+                            {{ trip.join_code }}
+                        </span>
+                    </div>
+                    <h3 style="margin:0;font-size:var(--text-xl);color:white;text-shadow:0 1px 4px rgba(0,0,0,0.2);">{{ trip.name }}</h3>
                 </div>
-                <h3 style="margin:0;font-size:var(--text-xl);color:white;">{{ trip.name }}</h3>
             </div>
             <div class="trip-card-body">
-                <p style="color:var(--text-2);margin-bottom:var(--space-2);display:flex;align-items:center;gap:var(--space-2);">
+                <div style="display:flex;align-items:center;gap:var(--space-2);color:var(--text-2);margin-bottom:var(--space-2);font-size:var(--text-sm);font-weight:var(--fw-medium);">
                     📍 {{ trip.destination }}
-                </p>
-                <p style="color:var(--text-3);font-size:var(--text-sm);margin:0;">
+                </div>
+                <div style="color:var(--text-3);font-size:var(--text-sm);margin-bottom:var(--space-1);">
                     📅 {{ trip.start_date }} → {{ trip.end_date }}
-                </p>
+                </div>
                 {% if trip.start_location %}
-                <p style="color:var(--text-3);font-size:var(--text-sm);margin:var(--space-1) 0 0;">
-                    🟢 From: {{ trip.start_location }}
-                </p>
+                <div style="color:var(--text-4);font-size:var(--text-xs);margin-top:var(--space-1);">
+                    🟢 From {{ trip.start_location }}
+                </div>
                 {% endif %}
             </div>
             <div class="trip-card-footer">
                 <div style="display:flex;gap:var(--space-2);">
                     <span class="badge badge-primary">🗺️ Map</span>
-                    <span class="badge badge-cyan">💬 Chat</span>
+                    <span class="badge badge-blue">💬 Chat</span>
                     <span class="badge badge-gray">📸 Gallery</span>
                 </div>
-                <span style="color:var(--primary);font-size:var(--text-sm);">→</span>
+                <span style="color:var(--primary);font-size:var(--text-lg);font-weight:var(--fw-bold);">→</span>
             </div>
         </a>
         {% endfor %}
@@ -160,24 +191,36 @@
     <div class="empty-state">
         <div class="empty-state-icon">✈️</div>
         <div class="empty-state-title">No trips yet</div>
-        <p>Create your first trip or join one using a code from your friend.</p>
+        <p style="color:var(--text-3);max-width:360px;margin:0 auto;">Create your first trip using the form above, or join one with a code from your travel buddy.</p>
     </div>
     {% endif %}
 
-    <!-- Profile Edit Modal -->
-    <div id="profileModal" class="modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100;justify-content:center;align-items:center;padding:var(--space-4);">
-        <div class="card" style="width:100%;max-width:400px;animation:slideUp 0.3s ease;">
-            <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;">
-                <h3 style="margin:0;">⚙️ Edit Profile</h3>
-                <button class="btn btn-ghost btn-icon btn-sm" onclick="document.getElementById('profileModal').style.display='none'">✕</button>
+    <!-- ===== Profile Edit Modal ===== -->
+    <div id="profileModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:var(--z-modal-bg);justify-content:center;align-items:center;padding:var(--space-4);backdrop-filter:blur(6px);">
+        <div class="card" style="width:100%;max-width:420px;animation:scaleIn 0.25s ease;border-radius:var(--radius-2xl);">
+            <div class="card-header" style="background:var(--surface-2);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;">
+                <div style="display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-base);">
+                    <span>⚙️</span> Edit Profile
+                </div>
+                <button class="modal-close" onclick="document.getElementById('profileModal').style.display='none'">✕</button>
             </div>
             <div class="card-body">
+                <!-- User avatar preview -->
+                <div style="text-align:center;margin-bottom:var(--space-6);">
+                    <div class="avatar" style="width:72px;height:72px;font-size:var(--text-2xl);margin:0 auto var(--space-3);">
+                        {{ (user.full_name or user.email)[0].upper() }}
+                    </div>
+                    <div style="font-size:var(--text-xs);color:var(--text-4);">{{ user.email }}</div>
+                </div>
                 <form action="/profile/update" method="post">
                     <div class="form-group">
                         <label class="form-label">Full Name</label>
                         <input type="text" name="full_name" class="form-control" value="{{ user.full_name }}" required>
                     </div>
-                    <button type="submit" class="btn btn-primary btn-block">Save Changes</button>
+                    <div style="display:flex;gap:var(--space-3);">
+                        <button type="button" class="btn btn-ghost btn-block" onclick="document.getElementById('profileModal').style.display='none'">Cancel</button>
+                        <button type="submit" class="btn btn-brand btn-block">Save Changes</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -188,7 +231,27 @@
 
 {% block extra_js %}
 <script>
-// Pass today's date for status calculation
 const today = new Date().toISOString().split('T')[0];
+
+// Close profile modal on backdrop click
+document.getElementById('profileModal')?.addEventListener('click', function(e) {
+    if (e.target === this) this.style.display = 'none';
+});
+
+// Set min dates for trip creation
+const startDate = document.querySelector('input[name="start_date"]');
+const endDate = document.querySelector('input[name="end_date"]');
+if (startDate) {
+    startDate.min = today;
+    startDate.addEventListener('change', () => {
+        if (endDate && startDate.value) {
+            endDate.min = startDate.value;
+            if (endDate.value && endDate.value < startDate.value) {
+                endDate.value = startDate.value;
+            }
+        }
+    });
+}
+if (endDate) endDate.min = today;
 </script>
 {% endblock %}

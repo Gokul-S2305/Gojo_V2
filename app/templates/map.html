@@ -4,55 +4,80 @@
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="">
 <style>
-  .map-full { height: 500px; border-radius: var(--radius-xl); overflow: hidden; border: 1px solid var(--border); }
-  @media (max-width: 768px) { .map-full { height: 320px; } }
+  .map-full {
+    height: 500px;
+    border-radius: var(--radius-2xl);
+    overflow: hidden;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+  }
+  @media (max-width: 768px) {
+    .map-full { height: 320px; border-radius: var(--radius-xl); }
+  }
+  /* Leaflet marker brand colors */
+  .leaflet-popup-content-wrapper {
+    border-radius: var(--radius-xl) !important;
+    box-shadow: var(--shadow-lg) !important;
+  }
+  .leaflet-popup-tip-container { display: none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top:var(--space-6);">
+<div class="container" style="padding-top:var(--space-6);padding-bottom:var(--space-8);">
 
     {% if trip %}
-    <!-- Trip Header -->
-    <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-5);">
+    <!-- Header -->
+    <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-5);" class="animate-fade-in">
         <a href="/trip/{{ trip.id }}" class="btn btn-ghost btn-sm">← Back</a>
-        <h1 style="margin:0;">🗺️ {{ trip.name }}</h1>
-        <span class="badge badge-primary">{{ trip.destination }}</span>
+        <div>
+            <h1 style="margin:0;font-size:var(--text-2xl);">🗺️ {{ trip.name }}</h1>
+            <p style="margin:0;color:var(--text-3);font-size:var(--text-sm);">📍 {{ trip.destination }}</p>
+        </div>
+        <span class="badge badge-primary" style="margin-left:auto;">{{ trip.destination }}</span>
     </div>
 
-    <!-- Map -->
-    <div id="tripMap" class="map-full"></div>
+    <!-- Map Container -->
+    <div class="animate-fade-in">
+        <div id="tripMap" class="map-full"></div>
+    </div>
 
-    <!-- Route Info -->
+    <!-- Route Info Card -->
     {% if start_coords %}
-    <div class="card" style="margin-top:var(--space-4);">
-        <div class="card-body" style="display:flex;gap:var(--space-6);flex-wrap:wrap;align-items:center;">
-            <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <span style="width:14px;height:14px;border-radius:50%;background:#10B981;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
-                <span class="text-sm"><strong>Start:</strong> {{ trip.start_location }}</span>
-            </div>
-            <div style="color:var(--text-4);">→</div>
-            <div style="display:flex;align-items:center;gap:var(--space-2);">
-                <span style="width:16px;height:16px;border-radius:50%;background:#4F46E5;border:3px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
-                <span class="text-sm"><strong>Destination:</strong> {{ trip.destination }}</span>
+    <div class="card animate-slide-up" style="margin-top:var(--space-4);">
+        <div class="card-body" style="padding:var(--space-4) var(--space-6);">
+            <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;align-items:center;">
+                <div style="display:flex;align-items:center;gap:var(--space-2);">
+                    <span style="width:14px;height:14px;border-radius:50%;background:var(--emerald);border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
+                    <span class="text-sm"><strong>Start:</strong> {{ trip.start_location }}</span>
+                </div>
+                <div style="color:var(--primary);font-size:var(--text-xl);">→</div>
+                <div style="display:flex;align-items:center;gap:var(--space-2);">
+                    <span style="width:16px;height:16px;border-radius:50%;background:var(--primary);border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
+                    <span class="text-sm"><strong>Destination:</strong> {{ trip.destination }}</span>
+                </div>
             </div>
         </div>
     </div>
     {% endif %}
 
-    <!-- Recommendations Section -->
-    <div style="margin-top:var(--space-8);">
+    <!-- AI Recommendations -->
+    <div style="margin-top:var(--space-8);" class="animate-fade-in">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-5);">
-            <h2 style="margin:0;">🤖 AI Recommendations</h2>
-            <button class="btn btn-gradient btn-sm" onclick="loadMapRecommendations()" id="mapRecBtn">
+            <div>
+                <h2 style="margin:0;font-size:var(--text-2xl);">🤖 AI Recommendations</h2>
+                <p style="margin:0;color:var(--text-3);font-size:var(--text-sm);">Top hotels, restaurants & attractions near {{ trip.destination }}</p>
+            </div>
+            <button class="btn btn-brand btn-sm" onclick="loadMapRecommendations()" id="mapRecBtn">
                 ✨ Load Recommendations
             </button>
         </div>
         <div id="mapRecommendations">
-            <div class="empty-state" style="padding:var(--space-8);">
+            <div class="empty-state" style="padding:var(--space-10);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-2xl);">
                 <div class="empty-state-icon">🏝️</div>
                 <div class="empty-state-title">Discover {{ trip.destination }}</div>
-                <p>Click "Load Recommendations" for AI-curated top spots.</p>
+                <p style="color:var(--text-3);margin-bottom:var(--space-5);">Click the button above for AI-curated top spots in {{ trip.destination }}!</p>
+                <button class="btn btn-brand" onclick="loadMapRecommendations()">✨ Load AI Recommendations</button>
             </div>
         </div>
     </div>
@@ -61,7 +86,8 @@
     <div class="empty-state">
         <div class="empty-state-icon">🗺️</div>
         <div class="empty-state-title">No Trips Yet</div>
-        <p><a href="/dashboard">Create a trip</a> to see maps and routes!</p>
+        <p style="margin-bottom:var(--space-4);">Create a trip to see interactive maps and routes!</p>
+        <a href="/dashboard" class="btn btn-brand">Create a Trip →</a>
     </div>
     {% endif %}
 
@@ -78,11 +104,10 @@ const START_COORDS = {{ start_coords | tojson }};
 const ROUTE_PATH   = {{ route_path | tojson }};
 const TRIP_ID      = {{ trip.id }};
 
-// Init map
 window.addEventListener('DOMContentLoaded', () => {
     GojoApp.mapModule.init('tripMap', DEST_COORDS, START_COORDS, ROUTE_PATH, '');
 
-    // Preloaded recommendations from server
+    // Preloaded recommendations
     const preloadedRecs = {{ recommendations | tojson }};
     if (preloadedRecs && (preloadedRecs.hotels?.length || preloadedRecs.attractions?.length)) {
         GojoApp.recommendations._render(document.getElementById('mapRecommendations'), preloadedRecs);
@@ -92,9 +117,9 @@ window.addEventListener('DOMContentLoaded', () => {
 function loadMapRecommendations() {
     const container = document.getElementById('mapRecommendations');
     const btn = document.getElementById('mapRecBtn');
-    if (btn) btn.disabled = true;
+    if (btn) { btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Loading...'; btn.disabled = true; }
     GojoApp.recommendations.load(TRIP_ID, container).finally(() => {
-        if (btn) btn.disabled = false;
+        if (btn) { btn.innerHTML = '✨ Refresh'; btn.disabled = false; }
     });
 }
 </script>

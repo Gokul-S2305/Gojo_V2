@@ -14,7 +14,7 @@
             </div>
             <p style="color:var(--text-3);margin:var(--space-1) 0 0;">{{ trip.name }} — Hotels, flights & tickets</p>
         </div>
-        <button class="btn btn-primary" onclick="openModal('addDocModal')">
+        <button class="btn btn-brand" onclick="openModal('addDocModal')">
             ➕ Add Booking
         </button>
     </div>
@@ -26,19 +26,19 @@
         {% set bus_train_count = (documents | selectattr('doc_type', 'in', ['bus', 'train']) | list | length) %}
 
         <div class="stat-card">
-            <div class="stat-icon" style="background:rgb(79 70 229 / 0.1);">🏨</div>
+            <div class="stat-icon" style="background:rgb(245 166 35 / 0.12);">🏨</div>
             <div><div class="stat-value">{{ hotel_count }}</div><div class="stat-label">Hotels</div></div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon" style="background:rgb(6 182 212 / 0.1);">✈️</div>
+            <div class="stat-icon" style="background:rgb(43 123 168 / 0.12);">✈️</div>
             <div><div class="stat-value">{{ flight_count }}</div><div class="stat-label">Flights</div></div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon" style="background:rgb(16 185 129 / 0.1);">🚌</div>
+            <div class="stat-icon" style="background:rgb(76 175 80 / 0.12);">🚌</div>
             <div><div class="stat-value">{{ bus_train_count }}</div><div class="stat-label">Bus/Train</div></div>
         </div>
         <div class="stat-card">
-            <div class="stat-icon" style="background:rgb(245 158 11 / 0.1);">📄</div>
+            <div class="stat-icon" style="background:rgb(232 88 74 / 0.12);">📄</div>
             <div><div class="stat-value">{{ documents | length }}</div><div class="stat-label">Total</div></div>
         </div>
     </div>
@@ -132,8 +132,8 @@
     <div class="empty-state">
         <div class="empty-state-icon">🎫</div>
         <div class="empty-state-title">No documents yet</div>
-        <p>Add your hotel bookings, flight tickets, bus passes, or any travel documents to keep everything in one place!</p>
-        <button class="btn btn-primary btn-lg" onclick="openModal('addDocModal')" style="margin-top:var(--space-4);">
+        <p style="color:var(--text-3);margin-bottom:var(--space-5);">Add your hotel bookings, flight tickets, bus passes, or any travel documents to keep everything in one place!</p>
+        <button class="btn btn-brand btn-lg" onclick="openModal('addDocModal')">
             ➕ Add First Document
         </button>
     </div>
@@ -156,7 +156,7 @@
                             {% for dtype in doc_types %}
                             <label style="cursor:pointer;">
                                 <input type="radio" name="doc_type" value="{{ dtype }}" {% if loop.first %}checked{% endif %} style="display:none;" onchange="updateDocForm(this.value)">
-                                <div class="doc-type-opt" data-type="{{ dtype }}" style="border:2px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-3);text-align:center;transition:all var(--ease-fast);{% if loop.first %}border-color:var(--primary);background:rgb(79 70 229 / 0.05);{% endif %}">
+                                <div class="doc-type-opt" data-type="{{ dtype }}" style="border:2px solid var(--border);border-radius:var(--radius-lg);padding:var(--space-3);text-align:center;transition:all var(--ease-fast);{% if loop.first %}border-color:var(--primary);background:rgb(232 88 74 / 0.08);{% endif %}">
                                     <div style="font-size:1.5rem;">{{ {'hotel':'🏨','flight':'✈️','bus':'🚌','train':'🚂','car':'🚗','other':'📄'}[dtype] }}</div>
                                     <div style="font-size:var(--text-xs);font-weight:var(--fw-medium);margin-top:4px;">{{ dtype | capitalize }}</div>
                                 </div>
@@ -226,7 +226,7 @@
 
                     <div style="display:flex;gap:var(--space-3);margin-top:var(--space-4);">
                         <button type="button" class="btn btn-ghost btn-block" onclick="closeModal('addDocModal')">Cancel</button>
-                        <button type="submit" class="btn btn-primary btn-block">Save Document</button>
+                        <button type="submit" class="btn btn-brand btn-block">Save Document</button>
                     </div>
                 </form>
             </div>
@@ -250,7 +250,7 @@ function updateDocForm(type) {
     // Update visual selection
     document.querySelectorAll('.doc-type-opt').forEach(el => {
         el.style.borderColor = el.dataset.type === type ? 'var(--primary)' : 'var(--border)';
-        el.style.background = el.dataset.type === type ? 'rgb(79 70 229 / 0.05)' : '';
+        el.style.background = el.dataset.type === type ? 'rgb(232 88 74 / 0.08)' : '';
     });
 
     // Show/hide fields

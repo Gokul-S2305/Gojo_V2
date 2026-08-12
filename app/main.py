@@ -7,7 +7,6 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 
 
-import asyncio
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -16,14 +15,16 @@ async def lifespan(app: FastAPI):
     import logging
     logger = logging.getLogger(__name__)
 
-    async def _init_db_task():
-        try:
-            await init_db()
-        except Exception as e:
-            logger.critical(f"Database initialization failed: {e}")
-            raise
+    # AWAIT init_db — app must not serve requests until tables exist.
+    # Previously this was fire-and-forget (create_task), causing 500s on /dashboard
+    # immediately after login because tables weren't created yet.
+    try:
+        await init_db()
+        logger.info("Startup complete — database ready.")
+    except Exception as e:
+        logger.critical(f"FATAL: Database initialization failed at startup: {e}")
+        raise
 
-    asyncio.create_task(_init_db_task())
     yield
     # Shutdown cleanup (if needed in future)
 

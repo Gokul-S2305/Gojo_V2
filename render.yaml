@@ -31,7 +31,20 @@ services:
         value: uploads
       - key: SITE_URL
         value: https://gojo-trip-planner.onrender.com
-    healthCheckPath: /
+      # --- Set these in the Render Dashboard -> Environment ---
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+    healthCheckPath: /health
     autoDeploy: true
 
 databases:

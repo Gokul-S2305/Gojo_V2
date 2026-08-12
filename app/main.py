@@ -13,7 +13,17 @@ import asyncio
 async def lifespan(app: FastAPI):
     """Application lifespan: startup and shutdown events."""
     from app.database import init_db
-    asyncio.create_task(init_db())
+    import logging
+    logger = logging.getLogger(__name__)
+
+    async def _init_db_task():
+        try:
+            await init_db()
+        except Exception as e:
+            logger.critical(f"Database initialization failed: {e}")
+            raise
+
+    asyncio.create_task(_init_db_task())
     yield
     # Shutdown cleanup (if needed in future)
 
@@ -50,6 +60,14 @@ app.include_router(documents.router)
 app.include_router(push.router)
 
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for Render deployment."""
+    return {"status": "ok", "service": "gojo-trip-planner"}
+
+
 @app.get("/")
 async def index(request: Request):
-    return templates.TemplateResponse("base.html", {"request": request, "title": "Gojo - Home"})
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/login", status_code=302)
+

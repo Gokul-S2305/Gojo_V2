@@ -1,663 +1,733 @@
 {% extends "base.html" %}
-{% block title %}{{ trip.name }} | Gojo{% endblock %}
+{% block title %}{{ trip.name }} · Gojo{% endblock %}
+
+{% block extra_css %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<style>
+  .trip-header-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-medium);
+    border-radius: var(--radius-xl);
+    padding: var(--space-6) var(--space-8);
+    margin-bottom: var(--space-6);
+    box-shadow: var(--shadow-sm);
+  }
+  .tab-nav {
+    display: flex;
+    gap: var(--space-2);
+    border-bottom: 1px solid var(--border-subtle);
+    margin-bottom: var(--space-6);
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  .tab-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    white-space: nowrap;
+  }
+  .tab-btn:hover {
+    color: var(--text-primary);
+  }
+  .tab-btn.active {
+    color: var(--primary);
+    border-bottom-color: var(--primary);
+  }
+  .tab-content {
+    display: none;
+  }
+  .tab-content.active {
+    display: block;
+    animation: fadeIn 0.2s ease;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .drag-handle {
+    cursor: grab;
+    color: var(--text-muted);
+  }
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top:var(--space-6);padding-bottom:var(--space-8);">
+<div class="main-container">
 
-    <!-- ===== Trip Hero ===== -->
-    <div class="trip-hero animate-fade-in">
-        <div style="position:relative;z-index:1;">
-            <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4);">
-                <a href="/dashboard" class="btn btn-white btn-sm">← Dashboard</a>
-                <span class="badge badge-white" style="font-family:var(--font-mono);letter-spacing:3px;font-size:var(--text-sm);">
-                    🔑 {{ trip.join_code }}
-                </span>
-                <button onclick="navigator.clipboard.writeText('{{ trip.join_code }}');GojoApp.toast.show('Join code copied!','success');"
-                    class="btn btn-white btn-sm" title="Copy join code">📋 Copy</button>
-            </div>
-
-            <h1 style="margin-bottom:var(--space-3);font-size:clamp(1.6rem,4vw,2.5rem);">{{ trip.name }}</h1>
-
-            <div style="display:flex;gap:var(--space-5);flex-wrap:wrap;align-items:center;font-size:var(--text-sm);">
-                <span style="display:flex;align-items:center;gap:6px;">📍 {{ trip.destination }}</span>
-                {% if trip.start_location %}
-                <span style="display:flex;align-items:center;gap:6px;">🟢 From {{ trip.start_location }}</span>
-                {% endif %}
-                <span style="display:flex;align-items:center;gap:6px;">📅 {{ trip.start_date }} → {{ trip.end_date }}</span>
-                <span style="display:flex;align-items:center;gap:6px;">⏱️ {{ duration }} day{{ 's' if duration != 1 }}</span>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="trip-actions">
-                <a href="/trip/{{ trip.id }}/chat" class="trip-action-btn">💬 Chat</a>
-                <a href="/trip/{{ trip.id }}/gallery" class="trip-action-btn">📸 Gallery</a>
-                <a href="/trip/{{ trip.id }}/map" class="trip-action-btn">🗺️ Map</a>
-                <a href="/trip/{{ trip.id }}/documents" class="trip-action-btn">🎫 Tickets</a>
-                <a href="/trip/{{ trip.id }}/export/pdf" class="trip-action-btn">📄 Export PDF</a>
-            </div>
+  <!-- ===== Header Banner ===== -->
+  <div class="trip-header-card">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: var(--space-4); margin-bottom: var(--space-4);">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: var(--space-2);">
+          <a href="/dashboard" class="btn btn-ghost btn-sm" style="padding: 0.25rem 0.5rem;">
+            <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+            Trips
+          </a>
+          <span class="badge badge-primary">{{ duration }} Day{{ 's' if duration != 1 }}</span>
+          {% if is_organizer %}
+          <span class="badge badge-success">Organizer</span>
+          {% else %}
+          <span class="badge badge-neutral">Traveler</span>
+          {% endif %}
         </div>
-    </div>
-
-    <!-- ===== Tabs ===== -->
-    <div class="tabs animate-fade-in" data-tabs="trip-tabs" style="margin-bottom:var(--space-6);">
-        <span class="tab-item active" data-panel="overview">📋 Overview</span>
-        <span class="tab-item" data-panel="itinerary">🗓️ Itinerary</span>
-        <span class="tab-item" data-panel="expenses">💰 Expenses</span>
-        <span class="tab-item" data-panel="recommendations">🤖 AI Recs</span>
-        <span class="tab-item" data-panel="ai-itinerary">✨ AI Plan</span>
-    </div>
-
-
-    <!-- ============ OVERVIEW TAB ============ -->
-    <div class="tab-panel active" data-tab-group="trip-tabs" data-panel-id="overview">
-        <div class="trip-layout">
-
-            <!-- Left Sidebar -->
-            <div>
-                <!-- Members Card -->
-                <div class="card" style="margin-bottom:var(--space-4);">
-                    <div class="card-header">
-                        <span>👥 Trip Members</span>
-                        <span class="badge badge-primary">{{ (organizers + members) | length }}</span>
-                    </div>
-                    <div class="card-body" style="padding:var(--space-4);">
-                        {% set member_colors = ['', 'blue', 'amber', 'green', 'violet'] %}
-                        {% for member in organizers %}
-                        <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-3);">
-                            <div class="avatar avatar-sm">{{ (member.full_name or member.email)[0].upper() }}</div>
-                            <div style="flex:1;min-width:0;">
-                                <div style="font-size:var(--text-sm);font-weight:var(--fw-semibold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                    {{ member.full_name or member.email }}
-                                </div>
-                            </div>
-                            <span class="badge badge-primary">⭐ Organizer</span>
-                        </div>
-                        {% endfor %}
-                        {% for member in members %}
-                        <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-3);">
-                            <div class="avatar avatar-sm avatar-{{ member_colors[loop.index % member_colors | length] }}">
-                                {{ (member.full_name or member.email)[0].upper() }}
-                            </div>
-                            <div style="flex:1;min-width:0;">
-                                <div style="font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                    {{ member.full_name or member.email }}
-                                </div>
-                            </div>
-                            <span class="badge badge-gray">Member</span>
-                        </div>
-                        {% endfor %}
-
-                        <!-- Share code -->
-                        <div style="margin-top:var(--space-3);padding-top:var(--space-3);border-top:1px solid var(--border);">
-                            <div style="font-size:var(--text-xs);color:var(--text-3);margin-bottom:var(--space-2);font-weight:var(--fw-semibold);">Share join code:</div>
-                            <div style="display:flex;gap:var(--space-2);">
-                                <code style="background:rgb(232 88 74 / 0.08);border:1px solid rgb(232 88 74 / 0.2);padding:var(--space-2) var(--space-3);border-radius:var(--radius-lg);font-family:var(--font-mono);font-size:var(--text-lg);font-weight:var(--fw-extrabold);letter-spacing:5px;color:var(--primary);flex:1;text-align:center;">{{ trip.join_code }}</code>
-                                <button class="btn btn-outline btn-icon" onclick="navigator.clipboard.writeText('{{ trip.join_code }}');GojoApp.toast.show('Copied!','success');" title="Copy code">📋</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Quick Stats -->
-                <div class="card" style="margin-bottom:var(--space-4);">
-                    <div class="card-header">📊 Quick Stats</div>
-                    <div class="card-body" style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
-                        <div class="stat-card" style="padding:var(--space-3);">
-                            <div class="stat-icon" style="background:rgb(245 166 35 / 0.12);width:40px;height:40px;font-size:1.1rem;">💰</div>
-                            <div>
-                                <div class="stat-value" style="font-size:var(--text-xl);">₹{{ "%.0f" | format(total_expenses) }}</div>
-                                <div class="stat-label">Total Spent</div>
-                            </div>
-                        </div>
-                        <div class="stat-card" style="padding:var(--space-3);">
-                            <div class="stat-icon" style="background:rgb(232 88 74 / 0.12);width:40px;height:40px;font-size:1.1rem;">🗓️</div>
-                            <div>
-                                <div class="stat-value" style="font-size:var(--text-xl);">{{ itinerary | length }}</div>
-                                <div class="stat-label">Activities Planned</div>
-                            </div>
-                        </div>
-                        <div class="stat-card" style="padding:var(--space-3);">
-                            <div class="stat-icon" style="background:rgb(76 175 80 / 0.12);width:40px;height:40px;font-size:1.1rem;">🎫</div>
-                            <div>
-                                <div class="stat-value" style="font-size:var(--text-xl);">{{ documents | length }}</div>
-                                <div class="stat-label">Documents</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Organizer Actions -->
-                {% if is_organizer %}
-                <div class="card">
-                    <div class="card-header" style="color:var(--primary);">⚙️ Organizer Tools</div>
-                    <div class="card-body" style="padding:var(--space-4);display:flex;flex-direction:column;gap:var(--space-3);">
-                        <button onclick="document.getElementById('editTripModal').style.display='flex'" class="btn btn-outline btn-sm btn-block">
-                            ✏️ Edit Trip Info
-                        </button>
-                        <form action="/trip/{{ trip.id }}/delete" method="post"
-                              onsubmit="return confirm('Delete this trip? This cannot be undone!');">
-                            <button type="submit" class="btn btn-danger btn-sm btn-block">🗑️ Delete Trip</button>
-                        </form>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Right Main Content -->
-            <div>
-                <!-- Trip Notes -->
-                {% if trip.notes %}
-                <div class="card" style="margin-bottom:var(--space-4);">
-                    <div class="card-header">📝 Trip Notes</div>
-                    <div class="card-body" style="white-space:pre-wrap;color:var(--text-2);">{{ trip.notes }}</div>
-                </div>
-                {% endif %}
-
-                <!-- Budget Progress -->
-                {% if trip.estimated_budget and trip.estimated_budget > 0 %}
-                <div class="card" style="margin-bottom:var(--space-4);">
-                    <div class="card-header">💰 Budget Tracker</div>
-                    <div class="card-body">
-                        {% set pct = [(total_expenses / trip.estimated_budget * 100), 100] | min %}
-                        <div style="display:flex;justify-content:space-between;margin-bottom:var(--space-2);font-size:var(--text-sm);">
-                            <span style="font-weight:var(--fw-semibold);">₹{{ "%.0f" | format(total_expenses) }} spent</span>
-                            <span style="color:var(--text-3);">Budget: ₹{{ "%.0f" | format(trip.estimated_budget) }}</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width:{{ pct }}%;{% if pct > 85 %}background:var(--rose);{% elif pct > 65 %}background:var(--amber);{% endif %}"></div>
-                        </div>
-                        <div style="font-size:var(--text-xs);color:var(--text-3);margin-top:var(--space-1);text-align:right;">{{ "%.0f" | format(pct) }}% used</div>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Recent Expenses -->
-                <div class="card" style="margin-bottom:var(--space-4);">
-                    <div class="card-header">
-                        <span>💰 Recent Expenses</span>
-                        <button class="btn btn-primary btn-sm" onclick="GojoApp.tabs.activate('expenses')">View All</button>
-                    </div>
-                    <div class="card-body" style="padding:0;">
-                        {% if expenses %}
-                        {% for exp in expenses[:4] %}
-                        {% set cat_icons = {'Food': '🍽️', 'Transport': '🚗', 'Hotel': '🏨', 'Activity': '🎯', 'Shopping': '🛍️', 'Other': '📦'} %}
-                        <div class="expense-row" style="border-radius:0;border-left:none;border-right:none;{% if not loop.last %}border-bottom:1px solid var(--border-light);{% endif %}">
-                            <div class="expense-icon" style="background:rgb(232 88 74 / 0.1);">
-                                {{ cat_icons.get(exp.category, '📦') }}
-                            </div>
-                            <div style="flex:1;min-width:0;">
-                                <div style="font-size:var(--text-sm);font-weight:var(--fw-semibold);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ exp.purpose }}</div>
-                                <div style="font-size:var(--text-xs);color:var(--text-4);">{{ exp.user_name }} · {{ exp.category }}</div>
-                            </div>
-                            <span style="font-weight:var(--fw-bold);color:var(--primary);font-size:var(--text-base);white-space:nowrap;">₹{{ "%.0f" | format(exp.amount) }}</span>
-                        </div>
-                        {% endfor %}
-                        <div style="padding:var(--space-3) var(--space-5);background:rgb(232 88 74 / 0.05);text-align:right;">
-                            <strong style="color:var(--primary);">Total: ₹{{ "%.0f" | format(total_expenses) }}</strong>
-                        </div>
-                        {% else %}
-                        <div class="empty-state" style="padding:var(--space-8);">
-                            <div class="empty-state-icon" style="font-size:2rem;">💸</div>
-                            <div class="empty-state-title" style="font-size:var(--text-base);">No expenses yet</div>
-                            <p style="font-size:var(--text-sm);color:var(--text-4);margin:0;">Add your first expense in the Expenses tab</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-
-                <!-- Itinerary Preview -->
-                {% if itinerary %}
-                <div class="card">
-                    <div class="card-header">
-                        <span>🗓️ Itinerary Preview</span>
-                        <button class="btn btn-primary btn-sm" onclick="GojoApp.tabs.activate('itinerary')">View Full</button>
-                    </div>
-                    <div class="card-body">
-                        <div class="timeline">
-                            {% for item in itinerary[:3] %}
-                            <div class="timeline-item">
-                                <div class="timeline-dot"></div>
-                                <div class="timeline-card">
-                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-1);">
-                                        <span class="timeline-time">Day {{ item.day_number }}{% if item.time %} · {{ item.time }}{% endif %}</span>
-                                        <span class="badge badge-primary">{{ item.category }}</span>
-                                    </div>
-                                    <h5 style="margin:0 0 2px;font-size:var(--text-sm);">{{ item.activity }}</h5>
-                                    {% if item.location %}
-                                    <p style="font-size:var(--text-xs);color:var(--secondary);margin:0;">📍 {{ item.location }}</p>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
-            </div>
+        <h1 style="font-size: 2rem; margin: 0 0 0.4rem 0;">{{ trip.name }}</h1>
+        <div style="display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); color: var(--text-secondary); font-size: 0.875rem;">
+          <span style="display: inline-flex; align-items: center; gap: 4px;">
+            <i data-lucide="map-pin" style="width: 15px; height: 15px; color: var(--primary);"></i>
+            {{ trip.destination }}
+          </span>
+          {% if trip.start_location %}
+          <span style="display: inline-flex; align-items: center; gap: 4px;">
+            <i data-lucide="navigation" style="width: 15px; height: 15px;"></i>
+            From {{ trip.start_location }}
+          </span>
+          {% endif %}
+          <span style="display: inline-flex; align-items: center; gap: 4px;">
+            <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
+            {{ trip.start_date | format_date_range(trip.end_date) }}
+          </span>
         </div>
-    </div>
+      </div>
 
-
-    <!-- ============ ITINERARY TAB ============ -->
-    <div class="tab-panel" data-tab-group="trip-tabs" data-panel-id="itinerary">
-        <div style="display:grid;grid-template-columns:1fr 300px;gap:var(--space-6);">
-
-            <!-- Itinerary List -->
-            <div>
-                {% if itinerary %}
-                {% set current_day = namespace(value=0) %}
-                <div class="timeline">
-                    {% for item in itinerary %}
-                    {% if item.day_number != current_day.value %}
-                    {% set current_day.value = item.day_number %}
-                    <h4 style="color:var(--primary);margin:var(--space-6) 0 var(--space-3);display:flex;align-items:center;gap:var(--space-2);">
-                        <span style="background:var(--gradient-brand);color:white;width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:var(--text-sm);">{{ item.day_number }}</span>
-                        Day {{ item.day_number }}
-                    </h4>
-                    {% endif %}
-                    <div class="timeline-item">
-                        <div class="timeline-dot"></div>
-                        <div class="timeline-card">
-                            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                                <div style="flex:1;">
-                                    <div style="display:flex;align-items:center;gap:var(--space-2);margin-bottom:var(--space-1);">
-                                        <span class="timeline-time">{{ item.time or '—' }}</span>
-                                        <span class="badge badge-primary" style="font-size:10px;">{{ item.category }}</span>
-                                    </div>
-                                    <h5 style="margin:0 0 var(--space-1);font-size:var(--text-sm);">{{ item.activity }}</h5>
-                                    {% if item.location %}
-                                    <p style="font-size:var(--text-xs);color:var(--secondary);margin:0 0 var(--space-1);">📍 {{ item.location }}</p>
-                                    {% endif %}
-                                    {% if item.description %}
-                                    <p style="font-size:var(--text-xs);color:var(--text-3);margin:0;">{{ item.description }}</p>
-                                    {% endif %}
-                                </div>
-                                {% if is_organizer %}
-                                <div style="display:flex;gap:var(--space-1);flex-shrink:0;margin-left:var(--space-3);">
-                                    <button class="btn btn-icon btn-ghost btn-sm" title="Edit"
-                                        onclick="openEditItineraryModal({{ item.id }}, {{ item.day_number }}, '{{ item.time }}', '{{ item.activity | escape }}', '{{ item.location | escape }}', '{{ item.description | escape }}', '{{ item.category }}')">✏️</button>
-                                    <form action="/trip/{{ trip.id }}/itinerary/{{ item.id }}/delete" method="post" style="display:inline;">
-                                        <button type="submit" class="btn btn-icon btn-ghost btn-sm" title="Delete">🗑️</button>
-                                    </form>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% else %}
-                <div class="empty-state">
-                    <div class="empty-state-icon">🗓️</div>
-                    <div class="empty-state-title">No itinerary yet</div>
-                    <p>{% if is_organizer %}Add activities using the form, or try the ✨ AI Plan tab!{% else %}The organizer will add items soon.{% endif %}</p>
-                </div>
-                {% endif %}
-            </div>
-
-            <!-- Add Itinerary (Organizer) -->
-            {% if is_organizer %}
-            <div class="card" style="height:fit-content;position:sticky;top:80px;">
-                <div class="card-header">
-                    <span>➕ Add Activity</span>
-                </div>
-                <div class="card-body">
-                    <form action="/trip/{{ trip.id }}/itinerary/add" method="post">
-                        <div class="form-group">
-                            <label class="form-label">Day Number</label>
-                            <input type="number" name="day_number" class="form-control" min="1" max="{{ duration }}" value="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Time</label>
-                            <input type="time" name="time" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Activity</label>
-                            <input type="text" name="activity" class="form-control" placeholder="e.g. Beach Visit" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Location</label>
-                            <input type="text" name="location" class="form-control" placeholder="e.g. Baga Beach" list="location-suggestions">
-                            <datalist id="location-suggestions">
-                                <option value="Goa"><option value="Mumbai"><option value="Delhi">
-                                <option value="Bangalore"><option value="Kerala"><option value="Jaipur">
-                                <option value="Manali"><option value="Pondicherry"><option value="Coorg">
-                            </datalist>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Category</label>
-                            <select name="category" class="form-control">
-                                <option>Sightseeing</option><option>Food</option><option>Hotel</option>
-                                <option>Transport</option><option>Activity</option><option>Shopping</option>
-                                <option>Nature</option><option>Culture</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Notes</label>
-                            <textarea name="description" class="form-control" rows="2" placeholder="Any details..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-brand btn-block">Add to Itinerary</button>
-                    </form>
-                </div>
-            </div>
-            {% endif %}
+      <!-- Single Join Code Display & Quick Invite -->
+      <div style="display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-2);">
+        <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--bg-muted); padding: 0.35rem 0.65rem; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">JOIN CODE:</span>
+          <span style="font-family: monospace; font-size: 1rem; font-weight: 700; letter-spacing: 2px; color: var(--primary);">
+            {{ trip.join_code }}
+          </span>
+          <button class="btn btn-ghost btn-sm" onclick="copyJoinCode('{{ trip.join_code }}')" title="Copy Join Code" style="padding: 0.2rem 0.4rem;">
+            <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+          </button>
         </div>
+
+        <button class="btn btn-secondary btn-sm" onclick="copyInviteLink('{{ trip.join_code }}')">
+          <i data-lucide="link" style="width: 14px; height: 14px;"></i>
+          Copy Invite Link
+        </button>
+      </div>
     </div>
 
-
-    <!-- ============ EXPENSES TAB ============ -->
-    <div class="tab-panel" data-tab-group="trip-tabs" data-panel-id="expenses">
-        <div style="display:grid;grid-template-columns:1fr 300px;gap:var(--space-6);">
-
-            <!-- Expenses List -->
-            <div>
-                <div class="card">
-                    <div class="card-header">
-                        <span>All Expenses</span>
-                        <span class="badge badge-primary" style="font-size:var(--text-sm);">Total: ₹{{ "%.0f" | format(total_expenses) }}</span>
-                    </div>
-                    <div class="card-body" style="padding:0;">
-                        {% if expenses %}
-                        {% set cat_icons = {'Food': '🍽️', 'Transport': '🚗', 'Hotel': '🏨', 'Activity': '🎯', 'Shopping': '🛍️', 'Other': '📦'} %}
-                        {% set cat_colors = {'Food': 'rgb(232 88 74 / 0.1)', 'Transport': 'rgb(43 123 168 / 0.1)', 'Hotel': 'rgb(245 166 35 / 0.1)', 'Activity': 'rgb(76 175 80 / 0.1)', 'Shopping': 'rgb(124 58 237 / 0.1)', 'Other': 'rgb(0 0 0 / 0.05)'} %}
-                        {% for exp in expenses %}
-                        <div class="expense-row" style="border-radius:0;border-left:none;border-right:none;{% if not loop.last %}border-bottom:1px solid var(--border-light);{% endif %}">
-                            <div class="expense-icon" style="background:{{ cat_colors.get(exp.category, 'var(--surface-2)') }};">
-                                {{ cat_icons.get(exp.category, '📦') }}
-                            </div>
-                            <div style="flex:1;min-width:0;">
-                                <div style="font-weight:var(--fw-semibold);font-size:var(--text-sm);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ exp.purpose }}</div>
-                                <div style="font-size:var(--text-xs);color:var(--text-4);margin-top:2px;display:flex;align-items:center;gap:var(--space-2);">
-                                    {{ exp.user_name }}
-                                    <span class="badge badge-gray">{{ exp.category }}</span>
-                                    {% if exp.created_at %}· {{ exp.created_at.strftime('%b %d') }}{% endif %}
-                                </div>
-                            </div>
-                            <div style="display:flex;align-items:center;gap:var(--space-2);flex-shrink:0;">
-                                <span style="font-weight:var(--fw-bold);color:var(--primary);font-size:var(--text-base);">₹{{ "%.0f" | format(exp.amount) }}</span>
-                                {% if exp.user_id == user.id %}
-                                <div style="display:flex;gap:2px;">
-                                    <button class="btn btn-icon btn-ghost btn-sm" title="Edit"
-                                        onclick="openEditExpenseModal({{ exp.id }}, '{{ exp.purpose | escape }}', {{ exp.amount }}, '{{ exp.category }}')">✏️</button>
-                                    <form action="/trip/{{ trip.id }}/expense/{{ exp.id }}/delete" method="post" style="display:inline;">
-                                        <button type="submit" class="btn btn-icon btn-ghost btn-sm" title="Delete">🗑️</button>
-                                    </form>
-                                </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                        <div style="padding:var(--space-4) var(--space-5);background:rgb(232 88 74 / 0.06);display:flex;justify-content:space-between;align-items:center;">
-                            <span style="color:var(--text-3);font-size:var(--text-sm);">{{ expenses | length }} expense{{ 's' if expenses | length != 1 }}</span>
-                            <strong style="color:var(--primary);font-size:var(--text-lg);">₹{{ "%.2f" | format(total_expenses) }}</strong>
-                        </div>
-                        {% else %}
-                        <div class="empty-state" style="padding:var(--space-10);">
-                            <div class="empty-state-icon">💸</div>
-                            <div class="empty-state-title">No expenses yet</div>
-                            <p style="color:var(--text-4);font-size:var(--text-sm);">Track your spending with the form on the right</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Add Expense -->
-            <div class="card" style="height:fit-content;position:sticky;top:80px;">
-                <div class="card-header">➕ Add Expense</div>
-                <div class="card-body">
-                    <form action="/trip/{{ trip.id }}/expense" method="post">
-                        <div class="form-group">
-                            <label class="form-label">Purpose</label>
-                            <input type="text" name="purpose" class="form-control" placeholder="e.g. Team Dinner" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Amount (₹)</label>
-                            <input type="number" name="amount" class="form-control" step="0.01" min="0" placeholder="0.00" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Category</label>
-                            <select name="category" class="form-control">
-                                <option>Food</option><option>Transport</option><option>Hotel</option>
-                                <option>Activity</option><option>Shopping</option><option>Other</option>
-                            </select>
-                        </div>
-                        <button type="submit" class="btn btn-brand btn-block">Add Expense</button>
-                    </form>
-                </div>
-            </div>
-        </div>
+    <!-- Quick Navigation Sub-bar -->
+    <div style="display: flex; gap: var(--space-2); flex-wrap: wrap; border-top: 1px solid var(--border-subtle); padding-top: var(--space-4); margin-top: var(--space-4);">
+      <a href="/trip/{{ trip.id }}/map" class="btn btn-secondary btn-sm">
+        <i data-lucide="map" style="width: 15px; height: 15px;"></i> Map & Route
+      </a>
+      <a href="/trip/{{ trip.id }}/chat" class="btn btn-secondary btn-sm">
+        <i data-lucide="message-square" style="width: 15px; height: 15px;"></i> Chat
+      </a>
+      <a href="/trip/{{ trip.id }}/gallery" class="btn btn-secondary btn-sm">
+        <i data-lucide="image" style="width: 15px; height: 15px;"></i> Photos
+      </a>
+      <a href="/trip/{{ trip.id }}/documents" class="btn btn-secondary btn-sm">
+        <i data-lucide="ticket" style="width: 15px; height: 15px;"></i> Bookings & Tickets
+      </a>
+      <a href="/trip/{{ trip.id }}/export/pdf" class="btn btn-secondary btn-sm" target="_blank">
+        <i data-lucide="file-text" style="width: 15px; height: 15px;"></i> Export PDF
+      </a>
     </div>
+  </div>
 
-
-    <!-- ============ AI RECOMMENDATIONS TAB ============ -->
-    <div class="tab-panel" data-tab-group="trip-tabs" data-panel-id="recommendations">
-        <div class="card">
-            <div class="card-header">
-                <div style="display:flex;align-items:center;gap:var(--space-2);">
-                    <span>🤖 AI Recommendations</span>
-                    <span class="badge badge-amber">for {{ trip.destination }}</span>
-                </div>
-                <button class="btn btn-brand btn-sm" onclick="loadRecommendations()" id="loadRecsBtn">🔄 Refresh</button>
-            </div>
-            <div class="card-body" id="recommendationsContainer">
-                <div class="empty-state" style="padding:var(--space-10);">
-                    <div class="empty-state-icon">🤖</div>
-                    <div class="empty-state-title">AI Ready to Explore</div>
-                    <p style="color:var(--text-3);max-width:400px;margin:0 auto var(--space-5);">Get AI-powered recommendations for hotels, restaurants, attractions, and travel tips for {{ trip.destination }}!</p>
-                    <button class="btn btn-brand btn-lg" onclick="loadRecommendations()">
-                        ✨ Get AI Recommendations
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- ============ AI ITINERARY TAB ============ -->
-    <div class="tab-panel" data-tab-group="trip-tabs" data-panel-id="ai-itinerary">
-        <div class="card">
-            <div class="card-header">
-                <div style="display:flex;align-items:center;gap:var(--space-2);">
-                    <span>✨ AI Itinerary</span>
-                    <span class="badge badge-amber">{{ duration }}-day plan</span>
-                </div>
-                <button class="btn btn-brand btn-sm" onclick="loadAIItinerary()" id="loadItinBtn">🔄 Regenerate</button>
-            </div>
-            <div class="card-body" id="aiItineraryContainer">
-                <div class="empty-state" style="padding:var(--space-10);">
-                    <div class="empty-state-icon">📅</div>
-                    <div class="empty-state-title">Generate Your Perfect {{ duration }}-Day Plan</div>
-                    <p style="color:var(--text-3);max-width:400px;margin:0 auto var(--space-5);">Let Gemini AI craft a detailed day-by-day itinerary for your {{ duration }}-day trip to {{ trip.destination }}!</p>
-                    <button class="btn btn-brand btn-lg" onclick="loadAIItinerary()">
-                        ✨ Generate {{ duration }}-Day Itinerary
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-
-    <!-- ===== MODALS ===== -->
-
-    <!-- Edit Trip Modal -->
+  <!-- ===== Tabs Navigation ===== -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('itineraryTab', this)">
+      <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+      Itinerary
+    </button>
+    <button class="tab-btn" onclick="switchTab('expensesTab', this)">
+      <i data-lucide="receipt" style="width: 16px; height: 16px;"></i>
+      Expenses & Split (₹{{ "{:,.0f}".format(total_expenses) }})
+    </button>
+    <button class="tab-btn" onclick="switchTab('aiTab', this)">
+      <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i>
+      AI Recommendations
+    </button>
+    <button class="tab-btn" onclick="switchTab('travelersTab', this)">
+      <i data-lucide="users" style="width: 16px; height: 16px;"></i>
+      Travelers ({{ all_members | length }})
+    </button>
     {% if is_organizer %}
-    <div id="editTripModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:var(--z-modal-bg);justify-content:center;align-items:center;padding:var(--space-4);backdrop-filter:blur(6px);">
-        <div class="card" style="width:100%;max-width:500px;max-height:92vh;overflow-y:auto;animation:scaleIn 0.25s ease;border-radius:var(--radius-2xl);">
-            <div class="card-header" style="background:var(--surface-2);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;">
-                <span>✏️ Edit Trip Info</span>
-                <button class="modal-close" onclick="document.getElementById('editTripModal').style.display='none'">✕</button>
+    <button class="tab-btn" onclick="switchTab('settingsTab', this)">
+      <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
+      Trip Settings
+    </button>
+    {% endif %}
+  </div>
+
+  <!-- ================= TAB: ITINERARY ================= -->
+  <div id="itineraryTab" class="tab-content active">
+    <div style="display: grid; grid-template-columns: 1fr 340px; gap: var(--space-6);">
+      <div>
+        {% if itinerary_by_day %}
+        {% for day_num, items in itinerary_by_day.items() %}
+        <div style="margin-bottom: var(--space-8);">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); border-bottom: 1px solid var(--border-subtle); padding-bottom: var(--space-2);">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span class="badge badge-primary" style="font-size: 0.8rem; padding: 0.25rem 0.65rem;">Day {{ day_num }}</span>
+              <span style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">
+                {% if items %}{{ items | length }} Activit{{ 'ies' if items | length != 1 else 'y' }}{% else %}No activities scheduled{% endif %}
+              </span>
             </div>
-            <div class="card-body">
-                <form action="/trip/{{ trip.id }}/edit" method="post">
-                    <div class="form-group">
-                        <label class="form-label">Trip Name</label>
-                        <input type="text" name="trip_name" class="form-control" value="{{ trip.name }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Destination</label>
-                        <input type="text" name="destination" class="form-control" value="{{ trip.destination }}" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Starting Point</label>
-                        <input type="text" name="start_location" class="form-control" value="{{ trip.start_location or '' }}">
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);">
-                        <div class="form-group">
-                            <label class="form-label">Start Date</label>
-                            <input type="date" name="start_date" class="form-control" value="{{ trip.start_date }}" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">End Date</label>
-                            <input type="date" name="end_date" class="form-control" value="{{ trip.end_date }}" required>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Estimated Budget (₹)</label>
-                        <input type="number" name="estimated_budget" class="form-control" step="0.01" value="{{ trip.estimated_budget or '' }}" placeholder="0.00">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Trip Notes</label>
-                        <textarea name="notes" class="form-control" rows="3" placeholder="Any special plans or notes...">{{ trip.notes or '' }}</textarea>
-                    </div>
-                    <div style="display:flex;gap:var(--space-3);">
-                        <button type="button" class="btn btn-ghost btn-block" onclick="document.getElementById('editTripModal').style.display='none'">Cancel</button>
-                        <button type="submit" class="btn btn-brand btn-block">Save Changes</button>
-                    </div>
-                </form>
+            {% if is_organizer %}
+            <button class="btn btn-ghost btn-sm" onclick="setDayNumber({{ day_num }})">
+              <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add Item
+            </button>
+            {% endif %}
+          </div>
+
+          <div class="day-sortable-list" data-day="{{ day_num }}" style="display: flex; flex-direction: column; gap: var(--space-3);">
+            {% for item in items %}
+            <div class="card itinerary-item-card" data-id="{{ item.id }}" style="padding: var(--space-4); display: flex; align-items: flex-start; gap: var(--space-3);">
+              {% if is_organizer %}
+              <div class="drag-handle" title="Drag to reorder" style="padding-top: 2px;">
+                <i data-lucide="grip-vertical" style="width: 16px; height: 16px;"></i>
+              </div>
+              {% endif %}
+
+              <div style="flex: 1;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                  <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    {% if item.time %}
+                    <span style="font-size: 0.8rem; font-weight: 600; color: var(--primary);">{{ item.time }}</span>
+                    <span>·</span>
+                    {% endif %}
+                    <span class="badge badge-neutral" style="font-size: 0.725rem;">{{ item.category }}</span>
+                  </div>
+                  {% if is_organizer %}
+                  <div style="display: flex; gap: 0.25rem;">
+                    <form action="/trip/{{ trip.id }}/itinerary/{{ item.id }}/delete" method="POST" onsubmit="return confirm('Delete this activity?')">
+                      <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger); padding: 0.2rem 0.4rem;" title="Delete">
+                        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                      </button>
+                    </form>
+                  </div>
+                  {% endif %}
+                </div>
+
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary); margin-bottom: 0.2rem;">
+                  {{ item.activity }}
+                </div>
+
+                {% if item.location %}
+                <div style="display: flex; align-items: center; gap: 0.35rem; color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.25rem;">
+                  <i data-lucide="map-pin" style="width: 12px; height: 12px; color: var(--primary);"></i>
+                  <span>{{ item.location }}</span>
+                </div>
+                {% endif %}
+
+                {% if item.description %}
+                <p style="margin: 0; font-size: 0.825rem; color: var(--text-secondary); line-height: 1.4;">
+                  {{ item.description }}
+                </p>
+                {% endif %}
+              </div>
             </div>
+            {% endfor %}
+          </div>
         </div>
+        {% endfor %}
+        {% else %}
+        <div class="card" style="padding: var(--space-8); text-align: center;">
+          <p style="color: var(--text-secondary); margin: 0;">No activities added yet.</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Add Activity Sidebar (Organizers) -->
+      {% if is_organizer %}
+      <div>
+        <div class="card" style="padding: var(--space-5); position: sticky; top: 80px;">
+          <h3 style="font-size: 1.05rem; margin-bottom: var(--space-4);">Add Itinerary Item</h3>
+          <form action="/trip/{{ trip.id }}/itinerary/add" method="POST">
+            <div style="margin-bottom: var(--space-3);">
+              <label class="form-label">Day Number</label>
+              <select name="day_number" id="addDaySelect" class="form-select">
+                {% for d in range(1, duration + 1) %}
+                <option value="{{ d }}">Day {{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div style="margin-bottom: var(--space-3);">
+              <label class="form-label">Time</label>
+              <input type="time" name="time" class="form-input">
+            </div>
+            <div style="margin-bottom: var(--space-3);">
+              <label class="form-label">Activity Name</label>
+              <input type="text" name="activity" class="form-input" placeholder="e.g. Scuba diving, Dinner" required>
+            </div>
+            <div style="margin-bottom: var(--space-3);">
+              <label class="form-label">Location / Neighborhood</label>
+              <input type="text" name="location" class="form-input" placeholder="e.g. Grand Island">
+            </div>
+            <div style="margin-bottom: var(--space-3);">
+              <label class="form-label">Category</label>
+              <select name="category" class="form-select">
+                <option value="Sightseeing">Sightseeing</option>
+                <option value="Food">Food & Dining</option>
+                <option value="Hotel">Hotel & Check-in</option>
+                <option value="Transport">Transport</option>
+                <option value="Activity" selected>Activity</option>
+                <option value="Shopping">Shopping</option>
+              </select>
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <label class="form-label">Description & Tips</label>
+              <textarea name="description" class="form-textarea" rows="2" placeholder="Notes, tickets or timings..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+              <i data-lucide="plus" style="width: 15px; height: 15px;"></i>
+              Add to Itinerary
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ================= TAB: EXPENSES & SPLIT ================= -->
+  <div id="expensesTab" class="tab-content">
+    <!-- Settlement & Share Summary Banner -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-6);">
+      <div class="card" style="padding: var(--space-5);">
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Total Spent</div>
+        <div style="font-size: 1.75rem; font-weight: 800; color: var(--primary); margin: 0.2rem 0;">₹{{ "{:,.2f}".format(total_expenses) }}</div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary);">Across {{ expenses | length }} expense logs</div>
+      </div>
+      <div class="card" style="padding: var(--space-5);">
+        <div style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase;">Per Traveler Share</div>
+        <div style="font-size: 1.75rem; font-weight: 800; color: var(--text-primary); margin: 0.2rem 0;">₹{{ "{:,.2f}".format(per_person_share) }}</div>
+        <div style="font-size: 0.8rem; color: var(--text-secondary);">Equally split between {{ all_members | length }} traveler{{ 's' if all_members | length != 1 }}</div>
+      </div>
     </div>
 
-    <!-- Edit Itinerary Modal -->
-    <div id="editItineraryModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:var(--z-modal-bg);justify-content:center;align-items:center;padding:var(--space-4);backdrop-filter:blur(6px);">
-        <div class="card" style="width:100%;max-width:500px;max-height:92vh;overflow-y:auto;animation:scaleIn 0.25s ease;border-radius:var(--radius-2xl);">
-            <div class="card-header" style="background:var(--surface-2);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;">
-                <span>✏️ Edit Activity</span>
-                <button class="modal-close" onclick="document.getElementById('editItineraryModal').style.display='none'">✕</button>
-            </div>
-            <div class="card-body">
-                <form id="editItineraryForm" method="post">
-                    <div class="form-group">
-                        <label class="form-label">Day Number</label>
-                        <input type="number" name="day_number" id="editItinDay" class="form-control" min="1" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Time</label>
-                        <input type="time" name="time" id="editItinTime" class="form-control">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Activity</label>
-                        <input type="text" name="activity" id="editItinActivity" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Location</label>
-                        <input type="text" name="location" id="editItinLocation" class="form-control" list="location-suggestions">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Category</label>
-                        <select name="category" id="editItinCategory" class="form-control">
-                            <option>Sightseeing</option><option>Food</option><option>Hotel</option>
-                            <option>Transport</option><option>Activity</option><option>Shopping</option>
-                            <option>Nature</option><option>Culture</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Notes</label>
-                        <textarea name="description" id="editItinNotes" class="form-control" rows="2"></textarea>
-                    </div>
-                    <div style="display:flex;gap:var(--space-3);">
-                        <button type="button" class="btn btn-ghost btn-block" onclick="document.getElementById('editItineraryModal').style.display='none'">Cancel</button>
-                        <button type="submit" class="btn btn-brand btn-block">Update Activity</button>
-                    </div>
-                </form>
-            </div>
+    <!-- Settlement Instructions (Who Owes Whom) -->
+    <div class="card" style="padding: var(--space-6); margin-bottom: var(--space-6);">
+      <h3 style="font-size: 1.15rem; margin-bottom: var(--space-3); display: flex; align-items: center; gap: 0.5rem;">
+        <i data-lucide="scale" style="width: 18px; height: 18px; color: var(--primary);"></i>
+        Settle Up Summary
+      </h3>
+      {% if settlements %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-3);">
+        {% for s in settlements %}
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); background: var(--bg-surface-hover); border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+          <div>
+            <span style="font-weight: 600; color: var(--danger);">{{ s.from_name }}</span>
+            <span style="font-size: 0.85rem; color: var(--text-secondary);"> owes </span>
+            <span style="font-weight: 600; color: var(--success);">{{ s.to_name }}</span>
+          </div>
+          <span style="font-weight: 700; color: var(--text-primary); font-size: 1rem;">
+            ₹{{ "{:,.2f}".format(s.amount) }}
+          </span>
         </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <p style="color: var(--text-secondary); margin: 0; font-size: 0.9rem;">
+        All balances are settled! Either no expenses have been recorded yet or everyone has paid their exact share.
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- Individual Member Balances Table -->
+    {% if member_balances %}
+    <div class="card" style="margin-bottom: var(--space-6); overflow: hidden;">
+      <div style="padding: var(--space-4) var(--space-6); background: var(--bg-surface-hover); border-bottom: 1px solid var(--border-subtle); font-weight: 600; font-size: 0.9rem;">
+        Member Balance Breakdown
+      </div>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.875rem;">
+          <thead>
+            <tr style="border-bottom: 1px solid var(--border-subtle); color: var(--text-muted); text-align: left;">
+              <th style="padding: var(--space-3) var(--space-6);">Traveler</th>
+              <th style="padding: var(--space-3) var(--space-6);">Total Paid</th>
+              <th style="padding: var(--space-3) var(--space-6);">Fair Share</th>
+              <th style="padding: var(--space-3) var(--space-6);">Net Balance</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for uid, b in member_balances.items() %}
+            <tr style="border-bottom: 1px solid var(--border-subtle);">
+              <td style="padding: var(--space-3) var(--space-6); font-weight: 600; color: var(--text-primary);">{{ b.name }}</td>
+              <td style="padding: var(--space-3) var(--space-6);">₹{{ "{:,.2f}".format(b.paid) }}</td>
+              <td style="padding: var(--space-3) var(--space-6); color: var(--text-secondary);">₹{{ "{:,.2f}".format(per_person_share) }}</td>
+              <td style="padding: var(--space-3) var(--space-6); font-weight: 700;">
+                {% if b.net > 0.01 %}
+                <span style="color: var(--success);">Gets back ₹{{ "{:,.2f}".format(b.net) }}</span>
+                {% elif b.net < -0.01 %}
+                <span style="color: var(--danger);">Owes ₹{{ "{:,.2f}".format(-b.net) }}</span>
+                {% else %}
+                <span style="color: var(--text-muted);">Settled (₹0.00)</span>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
     {% endif %}
 
-    <!-- Edit Expense Modal -->
-    <div id="editExpenseModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.55);z-index:var(--z-modal-bg);justify-content:center;align-items:center;padding:var(--space-4);backdrop-filter:blur(6px);">
-        <div class="card" style="width:100%;max-width:400px;animation:scaleIn 0.25s ease;border-radius:var(--radius-2xl);">
-            <div class="card-header" style="background:var(--surface-2);border-radius:var(--radius-2xl) var(--radius-2xl) 0 0;">
-                <span>✏️ Edit Expense</span>
-                <button class="modal-close" onclick="document.getElementById('editExpenseModal').style.display='none'">✕</button>
-            </div>
-            <div class="card-body">
-                <form id="editExpenseForm" method="post">
-                    <div class="form-group">
-                        <label class="form-label">Purpose</label>
-                        <input type="text" name="purpose" id="editExpPurpose" class="form-control" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Amount (₹)</label>
-                        <input type="number" name="amount" id="editExpAmount" class="form-control" step="0.01" min="0" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Category</label>
-                        <select name="category" id="editExpCategory" class="form-control">
-                            <option>Food</option><option>Transport</option><option>Hotel</option>
-                            <option>Activity</option><option>Shopping</option><option>Other</option>
-                        </select>
-                    </div>
-                    <div style="display:flex;gap:var(--space-3);">
-                        <button type="button" class="btn btn-ghost btn-block" onclick="document.getElementById('editExpenseModal').style.display='none'">Cancel</button>
-                        <button type="submit" class="btn btn-brand btn-block">Update Expense</button>
-                    </div>
+    <!-- Expenses List & Add Form -->
+    <div style="display: grid; grid-template-columns: 1fr 340px; gap: var(--space-6);">
+      <div>
+        <div class="card" style="padding: var(--space-6);">
+          <h3 style="font-size: 1.1rem; margin-bottom: var(--space-4);">Expense History</h3>
+          {% if expenses %}
+          <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+            {% for exp in expenses %}
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-subtle);">
+              <div>
+                <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">{{ exp.purpose }}</div>
+                <div style="font-size: 0.775rem; color: var(--text-muted); display: flex; gap: 0.5rem; align-items: center; margin-top: 2px;">
+                  <span>Paid by {{ exp.user_name }}</span>
+                  <span>·</span>
+                  <span class="badge badge-neutral" style="font-size: 0.7rem;">{{ exp.category }}</span>
+                  {% if exp.created_at %}<span>· {{ exp.created_at.strftime('%d %b') }}</span>{% endif %}
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: var(--space-3);">
+                <span style="font-weight: 700; font-size: 1rem; color: var(--text-primary);">₹{{ "{:,.2f}".format(exp.amount) }}</span>
+                {% if exp.user_id == user.id or is_organizer %}
+                <form action="/trip/{{ trip.id }}/expense/{{ exp.id }}/delete" method="POST" onsubmit="return confirm('Delete this expense?')">
+                  <button type="submit" class="btn btn-ghost btn-sm" style="color: var(--danger); padding: 0.2rem 0.4rem;">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                  </button>
                 </form>
+                {% endif %}
+              </div>
             </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <p style="color: var(--text-secondary); margin: 0;">No expenses logged yet. Add one using the form.</p>
+          {% endif %}
         </div>
+      </div>
+
+      <!-- Add Expense Form -->
+      <div>
+        <div class="card" style="padding: var(--space-5);">
+          <h3 style="font-size: 1.05rem; margin-bottom: var(--space-4);">Log an Expense</h3>
+          <form action="/trip/{{ trip.id }}/expense" method="POST">
+            <div style="margin-bottom: var(--space-3);">
+              <label class="form-label">Purpose</label>
+              <input type="text" name="purpose" class="form-input" placeholder="e.g. Dinner, Fuel, Entry tickets" required>
+            </div>
+            <div style="margin-bottom: var(--space-3);">
+              <label class="form-label">Amount (₹)</label>
+              <input type="number" step="0.01" name="amount" class="form-input" placeholder="0.00" required>
+            </div>
+            <div style="margin-bottom: var(--space-4);">
+              <label class="form-label">Category</label>
+              <select name="category" class="form-select">
+                <option value="Food">Food & Dining</option>
+                <option value="Transport">Transport</option>
+                <option value="Hotel">Hotel</option>
+                <option value="Activity">Activities</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+              <i data-lucide="plus" style="width: 15px; height: 15px;"></i>
+              Add Expense
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- ================= TAB: AI RECOMMENDATIONS ================= -->
+  <div id="aiTab" class="tab-content">
+    <div class="card" style="padding: var(--space-6); margin-bottom: var(--space-6);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-6);">
+        <div>
+          <h2 style="font-size: 1.35rem; margin: 0 0 0.2rem 0;">AI Recommendations for {{ trip.destination }}</h2>
+          <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">Verified spots, dining, and activities tailored to your budget</p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: var(--space-3);">
+          <!-- Budget Selector -->
+          <div style="display: inline-flex; background: var(--bg-muted); padding: 3px; border-radius: var(--radius-md); border: 1px solid var(--border-subtle);">
+            <button class="budget-pill btn btn-sm btn-ghost active" onclick="setBudget('budget', this)">₹ Budget</button>
+            <button class="budget-pill btn btn-sm btn-ghost" onclick="setBudget('mid', this)">₹₹ Mid</button>
+            <button class="budget-pill btn btn-sm btn-ghost" onclick="setBudget('luxury', this)">₹₹₹ Luxury</button>
+          </div>
+
+          <button class="btn btn-secondary btn-sm" onclick="fetchRecommendations(true)" id="refreshRecsBtn">
+            <i data-lucide="refresh-cw" style="width: 14px; height: 14px;"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div id="aiRecommendationsContainer">
+        <div class="skeleton" style="height: 120px; margin-bottom: 1rem;"></div>
+        <div class="skeleton" style="height: 120px; margin-bottom: 1rem;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB: TRAVELERS ================= -->
+  <div id="travelersTab" class="tab-content">
+    <div class="card" style="padding: var(--space-6); max-width: 600px;">
+      <h3 style="font-size: 1.15rem; margin-bottom: var(--space-4);">Trip Travelers</h3>
+      <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+        {% for m in all_members %}
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) 0; border-bottom: 1px solid var(--border-subtle);">
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div class="user-avatar-btn" style="cursor: default;">{{ (m.full_name or m.email)[0].upper() }}</div>
+            <div>
+              <div style="font-weight: 600; font-size: 0.95rem; color: var(--text-primary);">{{ m.full_name or 'Traveler' }}</div>
+              <div style="font-size: 0.8rem; color: var(--text-muted);">{{ m.email }}</div>
+            </div>
+          </div>
+          {% if m in organizers %}
+          <span class="badge badge-primary">Organizer</span>
+          {% else %}
+          <span class="badge badge-neutral">Member</span>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= TAB: SETTINGS (Organizers Only) ================= -->
+  {% if is_organizer %}
+  <div id="settingsTab" class="tab-content">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6);">
+      <div class="card" style="padding: var(--space-6);">
+        <h3 style="font-size: 1.15rem; margin-bottom: var(--space-4);">Edit Trip Details</h3>
+        <form action="/trip/{{ trip.id }}/edit" method="POST">
+          <div style="margin-bottom: var(--space-3);">
+            <label class="form-label">Trip Name</label>
+            <input type="text" name="trip_name" class="form-input" value="{{ trip.name }}" required>
+          </div>
+          <div style="margin-bottom: var(--space-3);">
+            <label class="form-label">Destination</label>
+            <input type="text" name="destination" class="form-input" value="{{ trip.destination }}" required>
+          </div>
+          <div style="margin-bottom: var(--space-3);">
+            <label class="form-label">Starting Location</label>
+            <input type="text" name="start_location" class="form-input" value="{{ trip.start_location or '' }}">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
+            <div>
+              <label class="form-label">Start Date</label>
+              <input type="date" name="start_date" class="form-input" value="{{ trip.start_date }}" required>
+            </div>
+            <div>
+              <label class="form-label">End Date</label>
+              <input type="date" name="end_date" class="form-input" value="{{ trip.end_date }}" required>
+            </div>
+          </div>
+          <div style="margin-bottom: var(--space-3);">
+            <label class="form-label">Estimated Budget (₹)</label>
+            <input type="number" step="0.01" name="estimated_budget" class="form-input" value="{{ trip.estimated_budget or '' }}">
+          </div>
+          <div style="margin-bottom: var(--space-4);">
+            <label class="form-label">Notes</label>
+            <textarea name="notes" class="form-textarea" rows="2">{{ trip.notes or '' }}</textarea>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Save Changes</button>
+        </form>
+      </div>
+
+      <div class="card" style="padding: var(--space-6); border-color: var(--danger-border); height: fit-content;">
+        <h3 style="font-size: 1.15rem; color: var(--danger); margin-bottom: var(--space-2);">Danger Zone</h3>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: var(--space-4);">
+          Deleting this trip will permanently remove all activities, expenses, messages, and uploaded documents for all members.
+        </p>
+        <form action="/trip/{{ trip.id }}/delete" method="POST" onsubmit="return confirm('Are you absolutely sure you want to delete this trip? This action cannot be undone.')">
+          <button type="submit" class="btn btn-danger" style="width: 100%;">
+            <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
+            Delete Trip Permanently
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    GojoApp.tabs.init();
-
-    function loadRecommendations() {
-        const container = document.getElementById('recommendationsContainer');
-        const btn = document.getElementById('loadRecsBtn');
-        if (btn) { btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Loading...'; btn.disabled = true; }
-        GojoApp.recommendations.load({{ trip.id }}, container).finally(() => {
-            if (btn) { btn.innerHTML = '🔄 Refresh'; btn.disabled = false; }
-        });
+  function switchTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const target = document.getElementById(tabId);
+    if (target) target.classList.add('active');
+    btn.classList.add('active');
+    if (tabId === 'aiTab' && !window.aiLoaded) {
+      fetchRecommendations(false);
     }
+  }
 
-    function loadAIItinerary() {
-        const container = document.getElementById('aiItineraryContainer');
-        const btn = document.getElementById('loadItinBtn');
-        if (btn) { btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Generating...'; btn.disabled = true; }
-        GojoApp.recommendations.loadItinerary({{ trip.id }}, container).finally(() => {
-            if (btn) { btn.innerHTML = '🔄 Regenerate'; btn.disabled = false; }
-        });
-    }
-
-    function openEditItineraryModal(id, day, time, activity, loc, desc, cat) {
-        document.getElementById('editItineraryForm').action = `/trip/{{ trip.id }}/itinerary/${id}/edit`;
-        document.getElementById('editItinDay').value = day || '';
-        document.getElementById('editItinTime').value = (time && time !== 'None') ? time : '';
-        document.getElementById('editItinActivity').value = activity || '';
-        document.getElementById('editItinLocation').value = (loc && loc !== 'None') ? loc : '';
-        document.getElementById('editItinNotes').value = (desc && desc !== 'None') ? desc : '';
-        document.getElementById('editItinCategory').value = cat || 'Activity';
-        document.getElementById('editItineraryModal').style.display = 'flex';
-    }
-
-    function openEditExpenseModal(id, purpose, amount, cat) {
-        document.getElementById('editExpenseForm').action = `/trip/{{ trip.id }}/expense/${id}/edit`;
-        document.getElementById('editExpPurpose').value = purpose || '';
-        document.getElementById('editExpAmount').value = amount || '';
-        document.getElementById('editExpCategory').value = cat || 'Other';
-        document.getElementById('editExpenseModal').style.display = 'flex';
-    }
-
-    // Close modals on backdrop click
-    ['editTripModal', 'editItineraryModal', 'editExpenseModal'].forEach(id => {
-        document.getElementById(id)?.addEventListener('click', function(e) {
-            if (e.target === this) this.style.display = 'none';
-        });
+  function copyJoinCode(code) {
+    navigator.clipboard.writeText(code).then(() => {
+      showToast(`Join code ${code} copied to clipboard!`, 'success');
     });
+  }
+
+  function copyInviteLink(code) {
+    const url = window.location.origin + '/join/' + code;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Invite link copied! Send it to your travel buddies.', 'success');
+    });
+  }
+
+  function setDayNumber(day) {
+    const sel = document.getElementById('addDaySelect');
+    if (sel) sel.value = day;
+    window.scrollTo({ top: sel.getBoundingClientRect().top + window.scrollY - 100, behavior: 'smooth' });
+  }
+
+  // Drag & Drop Itinerary sorting
+  document.querySelectorAll('.day-sortable-list').forEach(listEl => {
+    new Sortable(listEl, {
+      animation: 150,
+      handle: '.drag-handle',
+      onEnd: function () {
+        const items = [];
+        document.querySelectorAll('.day-sortable-list').forEach(list => {
+          const dayNum = parseInt(list.getAttribute('data-day'));
+          list.querySelectorAll('.itinerary-item-card').forEach((card, idx) => {
+            items.push({
+              id: parseInt(card.getAttribute('data-id')),
+              day_number: dayNum,
+              order_index: idx
+            });
+          });
+        });
+
+        fetch('/api/trip/{{ trip.id }}/itinerary/reorder', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ items: items })
+        }).then(r => r.json()).then(res => {
+          showToast('Itinerary order saved', 'info');
+        }).catch(() => showToast('Failed to save order', 'error'));
+      }
+    });
+  });
+
+  // AI Recommendations
+  let currentBudget = 'mid';
+  function setBudget(b, btn) {
+    currentBudget = b;
+    document.querySelectorAll('.budget-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    fetchRecommendations(true);
+  }
+
+  function fetchRecommendations(forceRefresh) {
+    const container = document.getElementById('aiRecommendationsContainer');
+    container.innerHTML = `
+      <div class="skeleton" style="height: 100px; margin-bottom: 1rem;"></div>
+      <div class="skeleton" style="height: 100px; margin-bottom: 1rem;"></div>
+    `;
+
+    fetch(`/api/trip/{{ trip.id }}/recommendations?budget=${currentBudget}&refresh=${forceRefresh}`)
+      .then(r => r.json())
+      .then(data => {
+        window.aiLoaded = true;
+        renderRecommendations(data);
+      })
+      .catch(e => {
+        container.innerHTML = `<p style="color: var(--danger);">Failed to load recommendations. Please try again.</p>`;
+      });
+  }
+
+  function renderRecommendations(data) {
+    const container = document.getElementById('aiRecommendationsContainer');
+    if (!data) return;
+
+    let html = '';
+    if (data.error) {
+      html += `<div style="background: var(--warning-light); color: var(--warning); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; font-size: 0.85rem;">${data.error}</div>`;
+    }
+
+    const sections = [
+      { key: 'hotels', title: 'Top Stays', icon: 'building' },
+      { key: 'restaurants', title: 'Popular Dining', icon: 'utensils' },
+      { key: 'attractions', title: 'Must-Visit Places', icon: 'map-pin' }
+    ];
+
+    sections.forEach(s => {
+      const items = data[s.key] || [];
+      if (items.length > 0) {
+        html += `<h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.4rem;">
+          <i data-lucide="${s.icon}" style="width: 16px; height: 16px; color: var(--primary);"></i>
+          ${s.title}
+        </h4>`;
+        html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">`;
+        items.forEach(item => {
+          const name = item.name || '';
+          const area = item.area || '';
+          const desc = item.description || '';
+          const price = item.price_range || '';
+          html += `
+            <div class="card" style="padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
+                  <strong style="font-size: 0.95rem; color: var(--text-primary);">${name}</strong>
+                  ${price ? `<span class="badge badge-neutral" style="font-size: 0.7rem;">${price}</span>` : ''}
+                </div>
+                ${area ? `<div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.4rem;">📍 ${area}</div>` : ''}
+                <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0 0 0.75rem 0; line-height: 1.4;">${desc}</p>
+              </div>
+              {% if is_organizer %}
+              <button class="btn btn-secondary btn-sm" onclick="addAiToItinerary('${name.replace(/'/g, "\\'")}', '${area.replace(/'/g, "\\'")}', '${desc.replace(/'/g, "\\'")}')">
+                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add to Itinerary
+              </button>
+              {% endif %}
+            </div>
+          `;
+        });
+        html += `</div>`;
+      }
+    });
+
+    container.innerHTML = html;
+    lucide.createIcons();
+  }
+
+  function addAiToItinerary(name, area, desc) {
+    const day = prompt('Which day of the trip would you like to add this to? (1 to {{ duration }})', '1');
+    if (!day) return;
+
+    fetch('/api/trip/{{ trip.id }}/itinerary/from-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        day_number: parseInt(day),
+        activity: name,
+        location: area,
+        description: desc,
+        category: 'Activity'
+      })
+    })
+    .then(r => r.json())
+    .then(res => {
+      showToast(`Added "${name}" to Day ${day}!`, 'success');
+      setTimeout(() => window.location.reload(), 1200);
+    })
+    .catch(() => showToast('Failed to add item', 'error'));
+  }
 </script>
 {% endblock %}

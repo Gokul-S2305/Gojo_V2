@@ -548,66 +548,66 @@ const GojoApp = (function () {
         }
     };
 
-    // ===== Map (Leaflet) =====
+    // ===== Map (Leaflet with CARTO Voyager) =====
     const mapModule = {
         map: null,
-        init(elementId, destCoords, startCoords, routePath, mapsApiKey) {
+        init(elementId, destCoords, startCoords, routePath, mapsApiKey, destName) {
             if (!document.getElementById(elementId)) return;
             if (typeof L === 'undefined') { console.error('[Map] Leaflet not loaded'); return; }
 
             this.map = L.map(elementId, {
                 center: destCoords,
-                zoom: startCoords ? 7 : 11,
+                zoom: startCoords ? 7 : 12,
                 zoomControl: true
             });
 
-            // Use OSM tiles (free, no API key)
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-                maxZoom: 19
+            // CARTO Voyager tiles for clean, legible English typography and modern aesthetics
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                subdomains: 'abcd',
+                maxZoom: 20
             }).addTo(this.map);
 
-            // Destination marker
+            // Destination marker with real destination name
+            const labelText = destName || 'Destination';
             const destIcon = L.divIcon({
-                html: '<div style="background:#4F46E5;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+                html: '<div style="background:#4F46E5;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
                 className: '',
-                iconSize: [16, 16],
-                iconAnchor: [8, 8]
+                iconSize: [18, 18],
+                iconAnchor: [9, 9]
             });
             L.marker(destCoords, { icon: destIcon })
               .addTo(this.map)
-              .bindPopup(`<b>📍 Destination</b>`)
+              .bindPopup(`<b>${labelText}</b>`)
               .openPopup();
 
             // Start marker
             if (startCoords) {
                 const startIcon = L.divIcon({
-                    html: '<div style="background:#10B981;width:14px;height:14px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+                    html: '<div style="background:#10B981;width:16px;height:16px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
                     className: '',
-                    iconSize: [14, 14],
-                    iconAnchor: [7, 7]
+                    iconSize: [16, 16],
+                    iconAnchor: [8, 8]
                 });
                 L.marker(startCoords, { icon: startIcon })
                   .addTo(this.map)
-                  .bindPopup('<b>🟢 Start Location</b>');
+                  .bindPopup('<b>Starting Point</b>');
             }
 
-            // Route
+            // Route with fitBounds
             if (routePath && routePath.length > 1) {
-                L.polyline(routePath, {
+                const polyline = L.polyline(routePath, {
                     color: '#4F46E5',
-                    weight: 4,
-                    opacity: 0.8,
-                    dashArray: null
+                    weight: 5,
+                    opacity: 0.85
                 }).addTo(this.map);
 
-                const group = L.featureGroup();
-                if (startCoords) group.addLayer(L.marker(startCoords));
-                group.addLayer(L.marker(destCoords));
-                this.map.fitBounds(group.getBounds().pad(0.2));
+                this.map.fitBounds(polyline.getBounds().pad(0.2));
+            } else if (startCoords) {
+                const bounds = L.latLngBounds([startCoords, destCoords]);
+                this.map.fitBounds(bounds.pad(0.3));
             }
 
-            // Resize fix for hidden containers
             setTimeout(() => this.map.invalidateSize(), 300);
         }
     };

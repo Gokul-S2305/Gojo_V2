@@ -5,8 +5,12 @@ from sqlmodel import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.models import User
-from app.auth_utils import get_password_hash, verify_password, create_access_token, oauth
+from app.auth_utils import (
+    get_password_hash, verify_password, create_access_token,
+    validate_password_strength, get_current_user, oauth
+)
 from app.config import settings
+from app.limiter import limiter
 from pathlib import Path
 import logging
 
@@ -22,11 +26,15 @@ def _make_cookie_params(access_token: str, remember: bool = False) -> dict:
         "key": "access_token",
         "value": f"Bearer {access_token}",
         "httponly": True,
-        "secure": settings.is_production,   # Fix: use production flag
+        "secure": settings.is_production,
         "samesite": "lax",
         "max_age": 2592000 if remember else 1800,  # 30 days or 30 mins
     }
 
+
+# ---------------------------------------------------------------------------
+# Google OAuth
+# ---------------------------------------------------------------------------
 
 @router.get("/login/google")
 async def login_google(request: Request):
@@ -55,8 +63,7 @@ async def auth_google(request: Request, session: AsyncSession = Depends(get_sess
         email = user_info.get('email')
         full_name = user_info.get('name')
 
-        statement = select(User).where(User.email == email)
-        result = await session.execute(statement)
+        result = await session.execute(select(User).where(User.email == email))
         user = result.scalar_one_or_none()
 
         if not user:
@@ -79,9 +86,13 @@ async def auth_google(request: Request, session: AsyncSession = Depends(get_sess
     except Exception as e:
         logger.error(f"OAuth error: {e}")
         return templates.TemplateResponse("auth/login.html", {
-            "request": request, "error": f"Authentication failed: {str(e)}"
+            "request": request, "error": "Authentication failed. Please try again."
         })
 
+
+# ---------------------------------------------------------------------------
+# Register
+# ---------------------------------------------------------------------------
 
 @router.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
@@ -96,27 +107,49 @@ async def register(
     full_name: str = Form(...),
     session: AsyncSession = Depends(get_session)
 ):
-    statement = select(User).where(User.email == email)
-    result = await session.execute(statement)
+    # Validate password strength
+    pw_error = validate_password_strength(password)
+    if pw_error:
+        return templates.TemplateResponse("auth/register.html", {
+            "request": request, "error": pw_error,
+            "email": email, "full_name": full_name
+        })
+
+    # Check duplicate email
+    result = await session.execute(select(User).where(User.email == email.lower().strip()))
     if result.scalar_one_or_none():
         return templates.TemplateResponse("auth/register.html", {
-            "request": request, "error": "Email already registered"
+            "request": request, "error": "An account with that email already exists.",
+            "email": email, "full_name": full_name
         })
 
     hashed_pw = get_password_hash(password)
-    new_user = User(email=email, password_hash=hashed_pw, full_name=full_name)
+    new_user = User(
+        email=email.lower().strip(),
+        password_hash=hashed_pw,
+        full_name=full_name.strip()
+    )
     session.add(new_user)
     await session.commit()
 
-    return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(url="/login?registered=1", status_code=status.HTTP_302_FOUND)
 
+
+# ---------------------------------------------------------------------------
+# Login
+# ---------------------------------------------------------------------------
 
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
-    return templates.TemplateResponse("auth/login.html", {"request": request})
+    registered = request.query_params.get("registered")
+    return templates.TemplateResponse("auth/login.html", {
+        "request": request,
+        "success": "Account created! You can now log in." if registered else None
+    })
 
 
 @router.post("/login")
+@limiter.limit("5/minute")
 async def login(
     request: Request,
     response: Response,
@@ -125,8 +158,9 @@ async def login(
     remember: bool = Form(False),
     session: AsyncSession = Depends(get_session)
 ):
-    statement = select(User).where(User.email == email)
-    result = await session.execute(statement)
+    result = await session.execute(
+        select(User).where(User.email == email.lower().strip())
+    )
     user = result.scalar_one_or_none()
 
     if not user or not user.password_hash or not verify_password(password, user.password_hash):
@@ -140,6 +174,40 @@ async def login(
     resp.set_cookie(**_make_cookie_params(access_token, remember=remember))
     return resp
 
+
+# ---------------------------------------------------------------------------
+# Password Update
+# ---------------------------------------------------------------------------
+
+@router.post("/profile/change-password")
+async def change_password(
+    request: Request,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    if not user:
+        return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
+
+    user_db = await session.get(User, user.id)
+    if not user_db or not user_db.password_hash or not verify_password(current_password, user_db.password_hash):
+        return RedirectResponse("/dashboard?error=Current+password+is+incorrect", status_code=status.HTTP_302_FOUND)
+
+    pw_error = validate_password_strength(new_password)
+    if pw_error:
+        return RedirectResponse(f"/dashboard?error={pw_error}", status_code=status.HTTP_302_FOUND)
+
+    user_db.password_hash = get_password_hash(new_password)
+    session.add(user_db)
+    await session.commit()
+
+    return RedirectResponse("/dashboard?msg=Password+updated+successfully", status_code=status.HTTP_302_FOUND)
+
+
+# ---------------------------------------------------------------------------
+# Logout
+# ---------------------------------------------------------------------------
 
 @router.get("/logout")
 async def logout():

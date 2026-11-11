@@ -1,16 +1,21 @@
+"""
+Authentication utilities: password hashing, JWT creation/verification, OAuth.
+Uses PyJWT instead of python-jose (jose has known CVEs and is unmaintained).
+"""
 import bcrypt
-from datetime import datetime, timedelta
-from jose import jwt, JWTError
+import jwt
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 import logging
 
 from app.config import settings
 from authlib.integrations.starlette_client import OAuth
 
-# Configure logging
 logger = logging.getLogger(__name__)
 
-# Configure OAuth
+# ---------------------------------------------------------------------------
+# Google OAuth
+# ---------------------------------------------------------------------------
 oauth = OAuth()
 oauth.register(
     name='google',
@@ -23,90 +28,126 @@ oauth.register(
     }
 )
 
+# ---------------------------------------------------------------------------
+# Password hashing
+# ---------------------------------------------------------------------------
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify a plain password against a hashed password."""
+    """Verify a plain password against a bcrypt hash."""
     try:
-        return bcrypt.checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
+        return bcrypt.checkpw(
+            plain_password.encode('utf-8'),
+            hashed_password.encode('utf-8')
+        )
     except Exception as e:
         logger.error(f"Password verification error: {e}")
         return False
 
+
 def get_password_hash(password: str) -> str:
     """Hash a password using bcrypt."""
     try:
-        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        return bcrypt.hashpw(
+            password.encode('utf-8'), bcrypt.gensalt()
+        ).decode('utf-8')
     except Exception as e:
         logger.error(f"Password hashing error: {e}")
         raise ValueError("Failed to hash password")
 
+
+def validate_password_strength(password: str) -> Optional[str]:
+    """
+    Returns an error message string if the password is too weak, else None.
+    Rules: min 8 chars, at least one uppercase, at least one digit.
+    """
+    if len(password) < 8:
+        return "Password must be at least 8 characters."
+    if not any(c.isupper() for c in password):
+        return "Password must contain at least one uppercase letter."
+    if not any(c.isdigit() for c in password):
+        return "Password must contain at least one digit."
+    return None
+
+# ---------------------------------------------------------------------------
+# JWT tokens (PyJWT)
+# ---------------------------------------------------------------------------
+
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """Create a JWT access token."""
+    """Create a signed JWT access token."""
     try:
         to_encode = data.copy()
-        if expires_delta:
-            expire = datetime.utcnow() + expires_delta
-        else:
-            expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
-        to_encode.update({"exp": expire})
-        encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+        expire = datetime.now(timezone.utc) + (
+            expires_delta or timedelta(minutes=settings.access_token_expire_minutes)
+        )
+        to_encode["exp"] = expire
+        token = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
         logger.info(f"Access token created for user: {data.get('user_id')}")
-        return encoded_jwt
+        return token
     except Exception as e:
         logger.error(f"Token creation error: {e}")
         raise ValueError("Failed to create access token")
 
-from fastapi import Request, Depends, HTTPException, status, Cookie
+
+def decode_access_token(token: str) -> Optional[dict]:
+    """Decode and verify a JWT token. Returns payload dict or None."""
+    try:
+        payload = jwt.decode(
+            token,
+            settings.secret_key,
+            algorithms=[settings.algorithm]
+        )
+        return payload
+    except jwt.ExpiredSignatureError:
+        logger.warning("Token has expired")
+        return None
+    except jwt.InvalidTokenError as e:
+        logger.warning(f"Invalid token: {e}")
+        return None
+
+# ---------------------------------------------------------------------------
+# Current user dependency
+# ---------------------------------------------------------------------------
+from fastapi import Request, Depends, Cookie
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app.models import User
 from sqlmodel import select
 
+
 async def get_current_user(
-    request: Request, 
-    access_token: Optional[str] = Cookie(None), 
+    request: Request,
+    access_token: Optional[str] = Cookie(None),
     session: AsyncSession = Depends(get_session)
 ) -> Optional[User]:
-    """Get the current authenticated user from the access token cookie."""
+    """Get the authenticated user from the access_token cookie."""
     if not access_token:
         return None
-    
+
     try:
-        # Parse Bearer token
-        scheme, token = access_token.split()
-        if scheme.lower() != 'bearer':
-            logger.warning("Invalid token scheme")
+        # Cookie value format: "Bearer <token>"
+        parts = access_token.split()
+        if len(parts) != 2 or parts[0].lower() != 'bearer':
+            logger.warning("Malformed access_token cookie")
             return None
-        
-        # Decode JWT
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = decode_access_token(parts[1])
+        if payload is None:
+            return None
         user_id = payload.get("user_id")
-        
         if user_id is None:
-            logger.warning("Token missing user_id")
+            logger.warning("Token payload missing user_id")
             return None
-            
-    except JWTError as e:
-        logger.warning(f"JWT decode error: {e}")
-        return None
-    except ValueError as e:
-        logger.warning(f"Token parsing error: {e}")
-        return None
     except Exception as e:
-        logger.error(f"Unexpected error in get_current_user: {e}")
+        logger.error(f"Unexpected error parsing token: {e}")
         return None
 
-    # Fetch user from database
     try:
-        statement = select(User).where(User.id == user_id)
-        result = await session.execute(statement)
+        result = await session.execute(select(User).where(User.id == user_id))
         user = result.scalar_one_or_none()
-        
         if user:
-            logger.debug(f"User authenticated: {user.email}")
+            logger.debug(f"Authenticated user: {user.email}")
         else:
-            logger.warning(f"User not found for id: {user_id}")
-            
+            logger.warning(f"No user found for id: {user_id}")
         return user
     except Exception as e:
-        logger.error(f"Database error in get_current_user: {e}")
+        logger.error(f"DB error in get_current_user: {e}")
         return None

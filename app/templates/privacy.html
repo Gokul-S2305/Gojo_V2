@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Privacy Policy · Gojo{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px; padding: var(--space-8) var(--space-4);">
+  <div class="card" style="padding: var(--space-8);">
+    <h1 style="font-size: 1.75rem; margin-bottom: var(--space-2);">Privacy Policy</h1>
+    <p style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: var(--space-6);">Last updated: November 2026</p>
+
+    <div style="color: var(--text-secondary); font-size: 0.95rem; line-height: 1.7; display: flex; flex-direction: column; gap: var(--space-4);">
+      <h2 style="font-size: 1.15rem; color: var(--text-primary); margin-top: var(--space-2);">1. Information We Collect</h2>
+      <p>Gojo collects only the information necessary to provide collaborative trip planning: your name, email address, trip details, itinerary items, expense logs, and files you choose to upload (such as travel photos and booking attachments).</p>
+
+      <h2 style="font-size: 1.15rem; color: var(--text-primary); margin-top: var(--space-2);">2. How We Use Your Information</h2>
+      <p>Your data is used solely to coordinate travel plans between you and the members you invite to your trips. We do not sell your personal data or use your travel itineraries for third-party advertising.</p>
+
+      <h2 style="font-size: 1.15rem; color: var(--text-primary); margin-top: var(--space-2);">3. Storage & Security</h2>
+      <p>Uploaded media and ticket documents are securely stored in encrypted cloud storage. Session credentials and passwords are encrypted using salted bcrypt hashing and secure JWT authentication tokens.</p>
+
+      <h2 style="font-size: 1.15rem; color: var(--text-primary); margin-top: var(--space-2);">4. Contact Us</h2>
+      <p>If you have questions about your data or want to delete your account and associated trip information, reach out to our team at support@gojotrips.com.</p>
+    </div>
+
+    <div style="margin-top: var(--space-8); padding-top: var(--space-4); border-top: 1px solid var(--border-subtle);">
+      <a href="/dashboard" class="btn btn-secondary">
+        <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Back to Dashboard
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -66,6 +66,12 @@ async def init_db():
                     "ALTER TABLE photo ADD COLUMN caption TEXT;",
                     "ALTER TABLE expense ADD COLUMN category TEXT DEFAULT 'Other';",
                     "ALTER TABLE itineraryitem ADD COLUMN category TEXT DEFAULT 'Activity';",
+                    "ALTER TABLE trip ADD COLUMN cover_image_url TEXT;",
+                    "ALTER TABLE photo ADD COLUMN url TEXT;",
+                    "ALTER TABLE photo ADD COLUMN storage_id TEXT;",
+                    "ALTER TABLE document ADD COLUMN file_url TEXT;",
+                    "ALTER TABLE document ADD COLUMN storage_id TEXT;",
+                    "ALTER TABLE itineraryitem ADD COLUMN order_index INTEGER DEFAULT 0;",
                 ]
 
                 for statement in migration_statements:

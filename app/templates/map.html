@@ -1,127 +1,138 @@
 {% extends "base.html" %}
-{% block title %}Map | Gojo{% endblock %}
+{% block title %}Map & Explorer · {{ trip.destination if trip else 'Gojo' }}{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" crossorigin="">
 <style>
-  .map-full {
-    height: 500px;
-    border-radius: var(--radius-2xl);
+  .map-container {
+    height: 520px;
+    border-radius: var(--radius-lg);
     overflow: hidden;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-medium);
+    box-shadow: var(--shadow-sm);
   }
   @media (max-width: 768px) {
-    .map-full { height: 320px; border-radius: var(--radius-xl); }
+    .map-container { height: 360px; }
   }
-  /* Leaflet marker brand colors */
   .leaflet-popup-content-wrapper {
-    border-radius: var(--radius-xl) !important;
-    box-shadow: var(--shadow-lg) !important;
+    border-radius: var(--radius-md) !important;
+    font-family: var(--font-body) !important;
+    box-shadow: var(--shadow-md) !important;
   }
-  .leaflet-popup-tip-container { display: none; }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container" style="padding-top:var(--space-6);padding-bottom:var(--space-8);">
+<div class="main-container">
 
-    {% if trip %}
-    <!-- Header -->
-    <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-5);" class="animate-fade-in">
-        <a href="/trip/{{ trip.id }}" class="btn btn-ghost btn-sm">← Back</a>
-        <div>
-            <h1 style="margin:0;font-size:var(--text-2xl);">🗺️ {{ trip.name }}</h1>
-            <p style="margin:0;color:var(--text-3);font-size:var(--text-sm);">📍 {{ trip.destination }}</p>
-        </div>
-        <span class="badge badge-primary" style="margin-left:auto;">{{ trip.destination }}</span>
+  {% if trip %}
+  <!-- Header -->
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-6); flex-wrap: wrap; gap: var(--space-3);">
+    <div>
+      <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+        <a href="/trip/{{ trip.id }}" class="btn btn-ghost btn-sm" style="padding: 0.25rem 0.5rem;">
+          <i data-lucide="arrow-left" style="width: 14px; height: 14px;"></i>
+          Back to Trip
+        </a>
+        <span class="badge badge-primary">{{ trip.name }}</span>
+      </div>
+      <h1 style="font-size: 1.75rem; margin: 0;">Interactive Map & Route</h1>
     </div>
 
-    <!-- Map Container -->
-    <div class="animate-fade-in">
-        <div id="tripMap" class="map-full"></div>
+    <div style="display: flex; align-items: center; gap: var(--space-3);">
+      <span class="badge badge-neutral" style="font-size: 0.85rem; padding: 0.35rem 0.75rem;">
+        <i data-lucide="map-pin" style="width: 14px; height: 14px; color: var(--primary);"></i>
+        Destination: {{ trip.destination }}
+      </span>
+    </div>
+  </div>
+
+  <!-- Map Card -->
+  <div class="card" style="padding: 4px; margin-bottom: var(--space-6);">
+    <div id="tripMap" class="map-container"></div>
+  </div>
+
+  <!-- Route Legend -->
+  {% if start_coords %}
+  <div class="card" style="padding: var(--space-4) var(--space-6); margin-bottom: var(--space-8);">
+    <div style="display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap;">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #10B981; display: inline-block;"></span>
+        <span style="font-size: 0.875rem; color: var(--text-secondary);">Start: <strong style="color: var(--text-primary);">{{ trip.start_location }}</strong></span>
+      </div>
+      <div style="color: var(--text-muted);"><i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i></div>
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: #4F46E5; display: inline-block;"></span>
+        <span style="font-size: 0.875rem; color: var(--text-secondary);">Destination: <strong style="color: var(--text-primary);">{{ trip.destination }}</strong></span>
+      </div>
+      <div style="margin-left: auto; font-size: 0.8rem; color: var(--text-muted);">
+        Route calculated via OSRM & OpenStreetMap
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Local Recommendations -->
+  <div style="margin-top: var(--space-8);">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+      <div>
+        <h2 style="font-size: 1.25rem; margin: 0 0 0.2rem 0;">Explore {{ trip.destination }}</h2>
+        <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0;">Verified spots, places to eat, and activities</p>
+      </div>
+      <a href="/trip/{{ trip.id }}#aiTab" class="btn btn-secondary btn-sm">
+        <i data-lucide="sparkles" style="width: 14px; height: 14px;"></i>
+        Full Recommendations
+      </a>
     </div>
 
-    <!-- Route Info Card -->
-    {% if start_coords %}
-    <div class="card animate-slide-up" style="margin-top:var(--space-4);">
-        <div class="card-body" style="padding:var(--space-4) var(--space-6);">
-            <div style="display:flex;gap:var(--space-6);flex-wrap:wrap;align-items:center;">
-                <div style="display:flex;align-items:center;gap:var(--space-2);">
-                    <span style="width:14px;height:14px;border-radius:50%;background:var(--emerald);border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
-                    <span class="text-sm"><strong>Start:</strong> {{ trip.start_location }}</span>
-                </div>
-                <div style="color:var(--primary);font-size:var(--text-xl);">→</div>
-                <div style="display:flex;align-items:center;gap:var(--space-2);">
-                    <span style="width:16px;height:16px;border-radius:50%;background:var(--primary);border:3px solid var(--surface);box-shadow:0 1px 4px rgba(0,0,0,0.3);flex-shrink:0;"></span>
-                    <span class="text-sm"><strong>Destination:</strong> {{ trip.destination }}</span>
-                </div>
-            </div>
+    {% if recommendations %}
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: var(--space-4);">
+      {% for hotel in recommendations.hotels[:2] %}
+      <div class="card" style="padding: var(--space-4);">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+          <strong style="font-size: 0.95rem;">{{ hotel.name }}</strong>
+          {% if hotel.price_range %}<span class="badge badge-neutral" style="font-size: 0.7rem;">{{ hotel.price_range }}</span>{% endif %}
         </div>
+        <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.4rem;">📍 {{ hotel.area }}</div>
+        <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0;">{{ hotel.description }}</p>
+      </div>
+      {% endfor %}
+
+      {% for rest in recommendations.restaurants[:2] %}
+      <div class="card" style="padding: var(--space-4);">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+          <strong style="font-size: 0.95rem;">{{ rest.name }}</strong>
+          {% if rest.price_range %}<span class="badge badge-neutral" style="font-size: 0.7rem;">{{ rest.price_range }}</span>{% endif %}
+        </div>
+        <div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.4rem;">📍 {{ rest.area }}</div>
+        <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0;">{{ rest.description }}</p>
+      </div>
+      {% endfor %}
     </div>
     {% endif %}
+  </div>
 
-    <!-- AI Recommendations -->
-    <div style="margin-top:var(--space-8);" class="animate-fade-in">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:var(--space-5);">
-            <div>
-                <h2 style="margin:0;font-size:var(--text-2xl);">🤖 AI Recommendations</h2>
-                <p style="margin:0;color:var(--text-3);font-size:var(--text-sm);">Top hotels, restaurants & attractions near {{ trip.destination }}</p>
-            </div>
-            <button class="btn btn-brand btn-sm" onclick="loadMapRecommendations()" id="mapRecBtn">
-                ✨ Load Recommendations
-            </button>
-        </div>
-        <div id="mapRecommendations">
-            <div class="empty-state" style="padding:var(--space-10);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-2xl);">
-                <div class="empty-state-icon">🏝️</div>
-                <div class="empty-state-title">Discover {{ trip.destination }}</div>
-                <p style="color:var(--text-3);margin-bottom:var(--space-5);">Click the button above for AI-curated top spots in {{ trip.destination }}!</p>
-                <button class="btn btn-brand" onclick="loadMapRecommendations()">✨ Load AI Recommendations</button>
-            </div>
-        </div>
-    </div>
-
-    {% else %}
-    <div class="empty-state">
-        <div class="empty-state-icon">🗺️</div>
-        <div class="empty-state-title">No Trips Yet</div>
-        <p style="margin-bottom:var(--space-4);">Create a trip to see interactive maps and routes!</p>
-        <a href="/dashboard" class="btn btn-brand">Create a Trip →</a>
-    </div>
-    {% endif %}
+  {% else %}
+  <div class="card" style="padding: var(--space-8); text-align: center;">
+    <p>Select a trip from your <a href="/dashboard">Dashboard</a> to view its route and map.</p>
+  </div>
+  {% endif %}
 
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin=""></script>
-
 {% if trip %}
 <script>
-const DEST_COORDS  = {{ destination_coords | tojson }};
-const START_COORDS = {{ start_coords | tojson }};
-const ROUTE_PATH   = {{ route_path | tojson }};
-const TRIP_ID      = {{ trip.id }};
+  const DEST_COORDS = {{ destination_coords | tojson }};
+  const START_COORDS = {{ start_coords | tojson }};
+  const ROUTE_PATH = {{ route_path | tojson }};
+  const DEST_NAME = {{ trip.destination | tojson }};
 
-window.addEventListener('DOMContentLoaded', () => {
-    GojoApp.mapModule.init('tripMap', DEST_COORDS, START_COORDS, ROUTE_PATH, '');
-
-    // Preloaded recommendations
-    const preloadedRecs = {{ recommendations | tojson }};
-    if (preloadedRecs && (preloadedRecs.hotels?.length || preloadedRecs.attractions?.length)) {
-        GojoApp.recommendations._render(document.getElementById('mapRecommendations'), preloadedRecs);
-    }
-});
-
-function loadMapRecommendations() {
-    const container = document.getElementById('mapRecommendations');
-    const btn = document.getElementById('mapRecBtn');
-    if (btn) { btn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Loading...'; btn.disabled = true; }
-    GojoApp.recommendations.load(TRIP_ID, container).finally(() => {
-        if (btn) { btn.innerHTML = '✨ Refresh'; btn.disabled = false; }
-    });
-}
+  window.addEventListener('DOMContentLoaded', () => {
+    GojoApp.mapModule.init('tripMap', DEST_COORDS, START_COORDS, ROUTE_PATH, '', DEST_NAME);
+  });
 </script>
 {% endif %}
 {% endblock %}

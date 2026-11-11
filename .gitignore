@@ -55,4 +55,9 @@ htmlcov/
 # ===== Misc =====
 *.tmp
 *.temp
+*.bak
 /tmp/
+
+# ===== User data directories =====
+gallery/
+.agent/

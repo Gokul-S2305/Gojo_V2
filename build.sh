@@ -4,11 +4,13 @@ set -o errexit
 
 # Install Python dependencies
 pip install --upgrade pip
-pip install -r req.txt
+pip install -r requirements.txt
 
-# Create necessary directories
-mkdir -p uploads
-mkdir -p gallery
+# Run database migrations
+python -m alembic upgrade head
+
+# Create fallback directories
+mkdir -p uploads/docs
 mkdir -p app/static
 mkdir -p app/templates
 

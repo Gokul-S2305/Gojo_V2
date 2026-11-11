@@ -1,5 +1,5 @@
-from fastapi import APIRouter, Request, Depends, Form, UploadFile, File, status
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse, JSONResponse
+from fastapi import APIRouter, Request, Depends, Form, UploadFile, File, status, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -7,25 +7,21 @@ from app.database import get_session
 from app.models import User, Trip, TripUserLink, Document
 from app.auth_utils import get_current_user
 from app.config import settings
+from app.storage import upload_file, delete_file, LOCAL_UPLOADS_DIR
 from pathlib import Path
-import aiofiles
-import uuid
 import logging
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
 
-DOCS_DIR = Path(__file__).parent.parent.parent / "uploads" / "docs"
-DOCS_DIR.mkdir(parents=True, exist_ok=True)
-
 DOC_TYPE_ICONS = {
-    "hotel": "🏨",
-    "flight": "✈️",
-    "bus": "🚌",
-    "train": "🚂",
-    "car": "🚗",
-    "other": "📄",
+    "hotel": "building",
+    "flight": "plane",
+    "bus": "bus",
+    "train": "train",
+    "car": "car",
+    "other": "file-text",
 }
 
 ALLOWED_DOC_EXTENSIONS = {".pdf", ".jpg", ".jpeg", ".png", ".webp"}
@@ -46,21 +42,27 @@ async def trip_documents(
     trip = trip_result.scalar_one_or_none()
 
     if not trip:
-        return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=404, detail="Trip not found")
 
     link_statement = select(TripUserLink).where(
         TripUserLink.trip_id == trip_id,
         TripUserLink.user_id == user.id
     )
     link_result = await session.execute(link_statement)
-    if not link_result.scalar_one_or_none():
-        return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
+    current_link = link_result.scalar_one_or_none()
+
+    if not current_link:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    is_organizer = current_link.role == "organizer"
 
     # Get documents with user info via JOIN
-    from app.models import User as UserModel
-    docs_statement = select(Document, UserModel).join(
-        UserModel, Document.user_id == UserModel.id
-    ).where(Document.trip_id == trip_id).order_by(Document.created_at.desc())
+    docs_statement = (
+        select(Document, User)
+        .join(User, Document.user_id == User.id)
+        .where(Document.trip_id == trip_id)
+        .order_by(Document.created_at.desc())
+    )
     docs_result = await session.execute(docs_statement)
     docs_data = docs_result.all()
 
@@ -68,7 +70,7 @@ async def trip_documents(
         {
             "id": d.id,
             "doc_type": d.doc_type,
-            "icon": DOC_TYPE_ICONS.get(d.doc_type, "📄"),
+            "icon": DOC_TYPE_ICONS.get(d.doc_type, "file-text"),
             "title": d.title,
             "vendor": d.vendor,
             "booking_ref": d.booking_ref,
@@ -77,10 +79,12 @@ async def trip_documents(
             "from_location": d.from_location,
             "to_location": d.to_location,
             "notes": d.notes,
+            "file_url": d.file_url or (f"/uploads/docs/{trip_id}/{d.file_path}" if d.file_path else None),
             "file_path": d.file_path,
             "created_at": d.created_at,
             "user_id": d.user_id,
             "user_name": u.full_name or u.email,
+            "can_delete": (d.user_id == user.id or is_organizer),
         }
         for d, u in docs_data
     ]
@@ -91,6 +95,7 @@ async def trip_documents(
         "trip": trip,
         "documents": documents,
         "doc_types": list(DOC_TYPE_ICONS.keys()),
+        "is_organizer": is_organizer,
     })
 
 
@@ -120,38 +125,45 @@ async def add_document(
     )
     link_result = await session.execute(link_statement)
     if not link_result.scalar_one_or_none():
-        return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=404, detail="Trip not found")
 
-    file_path = None
+    file_url = None
+    storage_id = None
+    stored_filename = None
+
     if attachment and attachment.filename:
         file_ext = Path(attachment.filename).suffix.lower()
         if file_ext in ALLOWED_DOC_EXTENSIONS:
             content = await attachment.read()
             if len(content) <= settings.max_upload_size:
-                unique_filename = f"{uuid.uuid4()}{file_ext}"
-                dest_path = DOCS_DIR / unique_filename
-                async with aiofiles.open(dest_path, 'wb') as f:
-                    await f.write(content)
-                file_path = unique_filename
+                file_url, storage_id = await upload_file(
+                    content=content,
+                    filename=attachment.filename,
+                    folder=f"docs/{trip_id}",
+                    resource_type="auto"
+                )
+                stored_filename = Path(file_url).name
 
     new_doc = Document(
         trip_id=trip_id,
         user_id=user.id,
         doc_type=doc_type,
-        title=title,
-        vendor=vendor,
-        booking_ref=booking_ref,
+        title=title.strip(),
+        vendor=vendor.strip() if vendor else None,
+        booking_ref=booking_ref.strip() if booking_ref else None,
         date_from=date_from or None,
         date_to=date_to or None,
-        from_location=from_location,
-        to_location=to_location,
-        notes=notes,
-        file_path=file_path,
+        from_location=from_location.strip() if from_location else None,
+        to_location=to_location.strip() if to_location else None,
+        notes=notes.strip() if notes else None,
+        file_path=stored_filename,
+        file_url=file_url,
+        storage_id=storage_id,
     )
     session.add(new_doc)
     await session.commit()
 
-    return RedirectResponse(f"/trip/{trip_id}/documents", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(f"/trip/{trip_id}/documents?msg=Document+added", status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/trip/{trip_id}/documents/{doc_id}/delete")
@@ -164,22 +176,33 @@ async def delete_document(
     if not user:
         return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
 
+    link_statement = select(TripUserLink).where(
+        TripUserLink.trip_id == trip_id,
+        TripUserLink.user_id == user.id
+    )
+    link_result = await session.execute(link_statement)
+    current_link = link_result.scalar_one_or_none()
+
+    if not current_link:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
     doc_statement = select(Document).where(Document.id == doc_id, Document.trip_id == trip_id)
     doc_result = await session.execute(doc_statement)
     doc = doc_result.scalar_one_or_none()
 
-    if not doc or doc.user_id != user.id:
-        return RedirectResponse(f"/trip/{trip_id}/documents", status_code=status.HTTP_302_FOUND)
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
 
-    if doc.file_path:
-        file_path = DOCS_DIR / doc.file_path
-        if file_path.exists():
-            file_path.unlink()
+    if doc.user_id != user.id and current_link.role != "organizer":
+        raise HTTPException(status_code=403, detail="Permission denied to delete document")
+
+    if doc.storage_id or doc.file_url:
+        await delete_file(doc.storage_id or doc.file_url, resource_type="raw")
 
     await session.delete(doc)
     await session.commit()
 
-    return RedirectResponse(f"/trip/{trip_id}/documents", status_code=status.HTTP_302_FOUND)
+    return RedirectResponse(f"/trip/{trip_id}/documents?msg=Document+deleted", status_code=status.HTTP_302_FOUND)
 
 
 @router.get("/trip/{trip_id}/documents/{doc_id}/download")
@@ -192,15 +215,28 @@ async def download_document(
     if not user:
         return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
 
+    # Secure membership check
+    link_statement = select(TripUserLink).where(
+        TripUserLink.trip_id == trip_id,
+        TripUserLink.user_id == user.id
+    )
+    link_result = await session.execute(link_statement)
+    if not link_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Trip not found")
+
     doc_statement = select(Document).where(Document.id == doc_id, Document.trip_id == trip_id)
     doc_result = await session.execute(doc_statement)
     doc = doc_result.scalar_one_or_none()
 
-    if not doc or not doc.file_path:
-        return JSONResponse({"error": "File not found"}, status_code=404)
+    if not doc or (not doc.file_url and not doc.file_path):
+        raise HTTPException(status_code=404, detail="Attachment not found")
 
-    file_path = DOCS_DIR / doc.file_path
+    if doc.file_url and doc.file_url.startswith("http"):
+        return RedirectResponse(doc.file_url)
+
+    # Local fallback file
+    file_path = LOCAL_UPLOADS_DIR / f"docs/{trip_id}" / (doc.file_path or "")
     if not file_path.exists():
-        return JSONResponse({"error": "File not found"}, status_code=404)
+        raise HTTPException(status_code=404, detail="Attachment file not found on disk")
 
-    return FileResponse(file_path, filename=f"{doc.title}{Path(doc.file_path).suffix}")
+    return FileResponse(file_path, filename=f"{doc.title}{file_path.suffix}")

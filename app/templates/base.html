@@ -1,285 +1,366 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Gojo Trip Planner — Your complete trip companion. Plan, collaborate, and cherish your travel memories.">
-    <meta name="theme-color" content="#E8584A">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Gojo">
-    <meta name="mobile-web-app-capable" content="yes">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Gojo Trip Planner — Collaborative trip planning, itineraries, bookings, and expense splitting.">
+  <meta name="theme-color" content="#4F46E5">
 
-    <title>{% block title %}{{ title | default("Gojo Trip Planner") }}{% endblock %}</title>
+  <title>{% block title %}Gojo · Modern Trip Planner{% endblock %}</title>
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/static/manifest.json">
-    <link rel="apple-touch-icon" href="/static/images/icon-192.png">
-    <link rel="icon" type="image/png" href="/static/images/icon-192.png">
+  <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
 
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Core Tokens & Styles -->
+  <link rel="stylesheet" href="/static/css/tokens.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
 
-    <!-- Stylesheets -->
-    <link rel="stylesheet" href="/static/css/design-system.css">
-    <link rel="stylesheet" href="/static/css/components.css">
-    <link rel="stylesheet" href="/static/css/main.css">
+  <style>
+    /* Navigation bar */
+    .top-navbar {
+      height: 64px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      padding: 0 var(--space-6);
+    }
+    .navbar-inner {
+      max-width: 1200px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-brand {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      text-decoration: none;
+      color: var(--text-primary);
+      font-family: var(--font-heading);
+      font-weight: 800;
+      font-size: 1.25rem;
+      letter-spacing: -0.02em;
+    }
+    .brand-mark {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-md);
+      background: var(--primary);
+      color: #FFFFFF;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+    .nav-item-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 0.85rem;
+      color: var(--text-secondary);
+      font-size: 0.875rem;
+      font-weight: 500;
+      border-radius: var(--radius-md);
+      text-decoration: none;
+      transition: all var(--transition-fast);
+    }
+    .nav-item-link:hover {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+    }
+    .nav-item-link.active {
+      background: var(--primary-light);
+      color: var(--primary);
+      font-weight: 600;
+    }
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+    }
+    .user-avatar-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-full);
+      background: var(--primary);
+      color: #FFFFFF;
+      font-weight: 600;
+      font-size: 0.875rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid var(--bg-surface);
+      box-shadow: var(--shadow-xs);
+      cursor: pointer;
+    }
+    .dropdown-panel {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 0.5rem;
+      width: 220px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-medium);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      display: none;
+      z-index: 1010;
+      padding: 0.5rem 0;
+    }
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      padding: 0.55rem 1rem;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: background var(--transition-fast);
+      cursor: pointer;
+    }
+    .dropdown-item:hover {
+      background: var(--bg-surface-hover);
+      color: var(--text-primary);
+    }
+    .dropdown-divider {
+      height: 1px;
+      background: var(--border-subtle);
+      margin: 0.35rem 0;
+    }
+    /* Mobile bottom bar */
+    .mobile-bar {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+      z-index: 1000;
+      padding: 0 1rem;
+      justify-content: space-around;
+      align-items: center;
+    }
+    .mobile-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      font-weight: 500;
+      text-decoration: none;
+    }
+    .mobile-item.active {
+      color: var(--primary);
+    }
+    @media (max-width: 768px) {
+      .hide-mobile { display: none !important; }
+      .mobile-bar { display: flex; }
+      body { padding-bottom: 64px; }
+      .top-navbar { padding: 0 var(--space-4); }
+    }
+    .main-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: var(--space-6) var(--space-4);
+    }
+    /* Footer */
+    .app-footer {
+      border-top: 1px solid var(--border-subtle);
+      padding: var(--space-8) var(--space-4);
+      margin-top: var(--space-12);
+      color: var(--text-muted);
+      font-size: 0.825rem;
+      text-align: center;
+    }
+    .app-footer a {
+      color: var(--text-secondary);
+      margin: 0 0.5rem;
+    }
+  </style>
 
-    {% block extra_css %}{% endblock %}
-
-    <!-- Prevent FOUC on dark mode -->
-    <script>
-        (function () {
-            const t = localStorage.getItem('gojo-theme') || 'light';
-            document.documentElement.setAttribute('data-theme', t);
-        })();
-    </script>
+  {% block extra_css %}{% endblock %}
 </head>
-
 <body>
-    <div class="page-wrapper">
-
-        {% if user %}
-        <!-- ===== Top Navbar ===== -->
-        <nav class="navbar" id="mainNavbar">
-            <div class="container">
-                <div class="navbar-container">
-                    <a href="/dashboard" class="navbar-brand" style="text-decoration:none;">
-                        <img src="/static/images/logo1.png" alt="Gojo Logo" class="navbar-logo">
-                        <div style="display:flex; flex-direction:column; justify-content:center; line-height:1;">
-                            <span class="brand-text">Gojo</span>
-                            <span style="font-size:0.58rem; color:var(--text-4); text-transform:uppercase; letter-spacing:0.6px; font-weight:var(--fw-semibold); margin-top:1px;">Where Journeys Become Memories</span>
-                        </div>
-                    </a>
-
-                    <!-- Desktop Nav Links -->
-                    <ul class="navbar-nav hide-mobile">
-                        <li><a href="/dashboard" class="nav-link {% if '/dashboard' in request.url.path %}active{% endif %}">🏠 Dashboard</a></li>
-                        <li><a href="/gallery" class="nav-link {% if '/gallery' in request.url.path %}active{% endif %}">📸 Gallery</a></li>
-                        <li><a href="/maps" class="nav-link {% if '/map' in request.url.path %}active{% endif %}">🗺️ Maps</a></li>
-                    </ul>
-
-                    <!-- Right side controls -->
-                    <div style="display:flex;align-items:center;gap:var(--space-2);">
-                        <!-- Theme Toggle -->
-                        <button class="theme-toggle" onclick="toggleTheme()" title="Toggle dark mode" aria-label="Toggle dark mode"></button>
-
-                        <!-- Notifications -->
-                        <button class="btn btn-ghost btn-icon" onclick="enableNotifications()" id="notifToggle" title="Enable notifications" style="position:relative; font-size:1.1rem;">
-                            🔔
-                        </button>
-
-                        <!-- User Menu -->
-                        <div style="position:relative;">
-                            <div class="avatar user-menu-trigger" onclick="toggleUserMenu()" title="{{ user.full_name or user.email }}">
-                                {{ (user.full_name or user.email)[0].upper() }}
-                            </div>
-                            <div class="user-dropdown" style="display:none;" id="userDropdown">
-                                <div class="user-dropdown-header">
-                                    <div style="font-weight:var(--fw-bold);color:var(--text);font-size:var(--text-sm); margin-bottom:2px;">
-                                        {{ user.full_name or 'Traveller' }}
-                                    </div>
-                                    <div style="font-size:var(--text-xs);color:var(--text-4);">{{ user.email }}</div>
-                                </div>
-                                <a href="/dashboard" class="user-dropdown-item">🏠 Dashboard</a>
-                                <a href="/gallery" class="user-dropdown-item">📸 Gallery</a>
-                                <a href="/maps" class="user-dropdown-item">🗺️ Maps</a>
-                                <div style="border-top:1px solid var(--border); margin:var(--space-1) 0;"></div>
-                                <a href="/logout" class="user-dropdown-item danger">🚪 Logout</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
-        <!-- ===== Bottom Navigation (Mobile) ===== -->
-        <nav class="bottom-nav hide-desktop" id="bottomNav">
-            <div class="bottom-nav-items">
-                <a href="/dashboard" class="bottom-nav-item {% if '/dashboard' in request.url.path %}active{% endif %}">
-                    <span class="nav-icon">🏠</span>
-                    <span>Home</span>
-                </a>
-                <a href="/maps" class="bottom-nav-item {% if '/map' in request.url.path %}active{% endif %}">
-                    <span class="nav-icon">🗺️</span>
-                    <span>Map</span>
-                </a>
-                <a href="/gallery" class="bottom-nav-item {% if '/gallery' in request.url.path %}active{% endif %}">
-                    <span class="nav-icon">📸</span>
-                    <span>Gallery</span>
-                </a>
-                <a href="/logout" class="bottom-nav-item">
-                    <span class="nav-icon">👤</span>
-                    <span>Account</span>
-                </a>
-            </div>
-        </nav>
-        {% endif %}
-
-        <!-- ===== Main Content ===== -->
-        <main class="page-content">
-            {% block content %}
-            <!-- ===== Landing Page ===== -->
-            <div class="hero">
-                <!-- Floating decorations -->
-                <div class="hero-deco hero-deco-1">✈️</div>
-                <div class="hero-deco hero-deco-2">🌍</div>
-                <div class="hero-deco hero-deco-3">🏝️</div>
-                <div class="hero-deco hero-deco-4">🗺️</div>
-
-                <div class="hero-content container">
-                    <div class="animate-pop-in" style="margin-bottom:var(--space-8);">
-                        <img src="/static/images/logo1.png" alt="Gojo Logo"
-                            style="width:130px;height:130px;border-radius:50%;box-shadow:0 20px 60px rgba(0,0,0,0.3);border:4px solid rgba(255,255,255,0.3);">
-                    </div>
-                    <h1 class="hero-title animate-slide-up">Where Journeys<br>Become Memories</h1>
-                    <p class="hero-subtitle animate-slide-up delay-100">Your complete trip companion — plan routes, collaborate with your squad, manage bookings, and keep memories forever.</p>
-                    <div class="animate-slide-up delay-200" style="display:flex;gap:var(--space-4);justify-content:center;flex-wrap:wrap;">
-                        <a href="/login" class="btn btn-xl" style="background:white;color:var(--primary);font-weight:var(--fw-bold);box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-                            ✈️ Get Started Free
-                        </a>
-                        <a href="/register" class="btn btn-xl btn-white">
-                            🚀 Sign Up
-                        </a>
-                    </div>
-
-                    <!-- Trust indicators -->
-                    <div class="animate-fade-in delay-400" style="display:flex;gap:var(--space-6);justify-content:center;flex-wrap:wrap;margin-top:var(--space-12);padding-top:var(--space-6);border-top:1px solid rgba(255,255,255,0.2);">
-                        <div style="display:flex;align-items:center;gap:var(--space-2);color:rgba(255,255,255,0.85);font-size:var(--text-sm);">
-                            <span>✅</span> Free to use
-                        </div>
-                        <div style="display:flex;align-items:center;gap:var(--space-2);color:rgba(255,255,255,0.85);font-size:var(--text-sm);">
-                            <span>🤖</span> AI-powered
-                        </div>
-                        <div style="display:flex;align-items:center;gap:var(--space-2);color:rgba(255,255,255,0.85);font-size:var(--text-sm);">
-                            <span>📱</span> Works offline
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Features Section -->
-            <div class="container section">
-                <div style="text-align:center;margin-bottom:var(--space-12);">
-                    <div style="display:inline-flex;align-items:center;gap:var(--space-2);background:rgb(232 88 74 / 0.1);color:var(--primary);padding:var(--space-2) var(--space-4);border-radius:var(--radius-full);font-size:var(--text-sm);font-weight:var(--fw-semibold);margin-bottom:var(--space-4);">
-                        ✨ Everything in one place
-                    </div>
-                    <h2 style="margin-bottom:var(--space-4);">Built for <span class="gradient-text-brand">real travellers</span></h2>
-                    <p style="color:var(--text-3);font-size:var(--text-lg);max-width:560px;margin:0 auto;">Every feature you need to plan, coordinate, and remember your perfect trip.</p>
-                </div>
-                <div class="grid grid-cols-3" style="gap:var(--space-6);">
-                    <div class="card card-hover animate-fade-in" style="text-align:center;">
-                        <div class="card-body">
-                            <div style="width:64px;height:64px;background:rgb(232 88 74 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">🗺️</div>
-                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Smart Maps</h3>
-                            <p class="text-muted" style="margin:0;">Interactive maps with AI-powered recommendations for hotels, restaurants, and attractions.</p>
-                        </div>
-                    </div>
-                    <div class="card card-hover animate-fade-in delay-100" style="text-align:center;">
-                        <div class="card-body">
-                            <div style="width:64px;height:64px;background:rgb(43 123 168 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">💬</div>
-                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Real-time Chat</h3>
-                            <p class="text-muted" style="margin:0;">Coordinate with your travel companions instantly with live WebSocket messaging.</p>
-                        </div>
-                    </div>
-                    <div class="card card-hover animate-fade-in delay-200" style="text-align:center;">
-                        <div class="card-body">
-                            <div style="width:64px;height:64px;background:rgb(245 166 35 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">🏨</div>
-                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Booking Manager</h3>
-                            <p class="text-muted" style="margin:0;">Keep all your hotel bookings, flight tickets, and transport details in one place.</p>
-                        </div>
-                    </div>
-                    <div class="card card-hover animate-fade-in delay-100" style="text-align:center;">
-                        <div class="card-body">
-                            <div style="width:64px;height:64px;background:rgb(76 175 80 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">📸</div>
-                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Photo Gallery</h3>
-                            <p class="text-muted" style="margin:0;">Share and cherish your travel memories together with a beautiful shared gallery.</p>
-                        </div>
-                    </div>
-                    <div class="card card-hover animate-fade-in delay-200" style="text-align:center;">
-                        <div class="card-body">
-                            <div style="width:64px;height:64px;background:rgb(124 58 237 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">🤖</div>
-                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">AI Itinerary</h3>
-                            <p class="text-muted" style="margin:0;">Get personalized day-by-day itinerary suggestions powered by Gemini AI.</p>
-                        </div>
-                    </div>
-                    <div class="card card-hover animate-fade-in delay-300" style="text-align:center;">
-                        <div class="card-body">
-                            <div style="width:64px;height:64px;background:rgb(13 148 136 / 0.1);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto var(--space-4);">📱</div>
-                            <h3 style="font-size:var(--text-xl);margin-bottom:var(--space-2);">Install as App</h3>
-                            <p class="text-muted" style="margin:0;">Install Gojo on your phone for a native-like experience, even offline.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            {% endblock %}
-        </main>
-
-    </div>
-
-    <!-- ===== Lightbox ===== -->
-    <div id="lightbox" class="lightbox" onclick="GojoApp.lightbox.close()">
-        <button class="lightbox-close" onclick="GojoApp.lightbox.close()">✕</button>
-        <div id="lightboxContent"></div>
-    </div>
-
-    <!-- ===== Install Banner (PWA) ===== -->
-    <div id="installBanner" class="install-banner install-banner-hidden">
-        <img src="/static/images/icon-192.png" style="width:46px;height:46px;border-radius:var(--radius-lg);" alt="Gojo">
-        <div style="flex:1;">
-            <div style="font-weight:var(--fw-bold);font-size:var(--text-sm);color:var(--text);">Install Gojo</div>
-            <div style="font-size:var(--text-xs);color:var(--text-3);">Add to home screen for quick access</div>
+  {% if user %}
+  <header class="top-navbar">
+    <div class="navbar-inner">
+      <a href="/dashboard" class="nav-brand">
+        <div class="brand-mark">
+          <i data-lucide="compass" style="width: 18px; height: 18px;"></i>
         </div>
-        <button class="btn btn-brand btn-sm" onclick="installApp()">Install</button>
-        <button class="btn btn-ghost btn-icon btn-sm" onclick="document.getElementById('installBanner').classList.add('install-banner-hidden')" style="min-width:32px;">✕</button>
+        <span>Gojo</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="hide-mobile">
+        <ul class="nav-links">
+          <li>
+            <a href="/dashboard" class="nav-item-link {% if request.url.path == '/dashboard' %}active{% endif %}">
+              <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>
+              Trips
+            </a>
+          </li>
+          <li>
+            <a href="/maps" class="nav-item-link {% if '/map' in request.url.path %}active{% endif %}">
+              <i data-lucide="map" style="width: 16px; height: 16px;"></i>
+              Map & Explorer
+            </a>
+          </li>
+          <li>
+            <a href="/gallery" class="nav-item-link {% if '/gallery' in request.url.path %}active{% endif %}">
+              <i data-lucide="image" style="width: 16px; height: 16px;"></i>
+              Gallery
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      <!-- Right controls -->
+      <div class="nav-right">
+        <div style="position: relative;">
+          <div class="user-avatar-btn" onclick="toggleDropdown('userMenu')" title="{{ user.full_name or user.email }}">
+            {{ (user.full_name or user.email)[0].upper() }}
+          </div>
+          <div class="dropdown-panel" id="userMenu">
+            <div style="padding: 0.5rem 1rem;">
+              <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-primary);">{{ user.full_name or 'Traveler' }}</div>
+              <div style="font-size: 0.75rem; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis;">{{ user.email }}</div>
+            </div>
+            <div class="dropdown-divider"></div>
+            <a href="/dashboard" class="dropdown-item">
+              <i data-lucide="layout-dashboard" style="width: 16px; height: 16px;"></i>
+              Dashboard
+            </a>
+            <div class="dropdown-item" onclick="openProfileModal()">
+              <i data-lucide="user" style="width: 16px; height: 16px;"></i>
+              Edit Profile
+            </div>
+            <div class="dropdown-divider"></div>
+            <a href="/logout" class="dropdown-item" style="color: var(--danger);">
+              <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+              Sign Out
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
+  </header>
 
-    <!-- ===== Scripts ===== -->
-    <script src="/static/js/main.js"></script>
+  <!-- Mobile Bottom Nav -->
+  <nav class="mobile-bar">
+    <a href="/dashboard" class="mobile-item {% if request.url.path == '/dashboard' %}active{% endif %}">
+      <i data-lucide="layout-dashboard" style="width: 20px; height: 20px;"></i>
+      <span>Trips</span>
+    </a>
+    <a href="/maps" class="mobile-item {% if '/map' in request.url.path %}active{% endif %}">
+      <i data-lucide="map" style="width: 20px; height: 20px;"></i>
+      <span>Map</span>
+    </a>
+    <a href="/gallery" class="mobile-item {% if '/gallery' in request.url.path %}active{% endif %}">
+      <i data-lucide="image" style="width: 20px; height: 20px;"></i>
+      <span>Photos</span>
+    </a>
+    <div class="mobile-item" onclick="openProfileModal()" style="cursor: pointer;">
+      <i data-lucide="user" style="width: 20px; height: 20px;"></i>
+      <span>Profile</span>
+    </div>
+  </nav>
 
-    <script>
-        // User menu
-        function toggleUserMenu() {
-            const menu = document.getElementById('userDropdown');
-            if (menu) menu.style.display = menu.style.display === 'none' || !menu.style.display ? 'block' : 'none';
-        }
+  <!-- Profile Modal -->
+  <div id="profileModal" style="display: none; position: fixed; inset: 0; background: rgba(15,23,42,0.6); z-index: 2000; align-items: center; justify-content: center; padding: 1rem;">
+    <div class="card" style="max-width: 440px; width: 100%; padding: var(--space-6);">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4);">
+        <h3 style="margin: 0; font-size: 1.15rem;">Edit Profile</h3>
+        <button class="btn btn-ghost btn-sm" onclick="closeProfileModal()"><i data-lucide="x" style="width: 16px; height: 16px;"></i></button>
+      </div>
+      <form action="/profile/update" method="POST" style="margin-bottom: var(--space-4);">
+        <div style="margin-bottom: var(--space-3);">
+          <label class="form-label">Full Name</label>
+          <input type="text" name="full_name" class="form-input" value="{{ user.full_name or '' }}" required>
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%;">Save Name</button>
+      </form>
 
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('.user-menu-trigger') && !e.target.closest('.user-dropdown')) {
-                const menu = document.getElementById('userDropdown');
-                if (menu) menu.style.display = 'none';
-            }
-        });
+      <div class="dropdown-divider" style="margin: var(--space-4) 0;"></div>
 
-        // Navbar scroll effect
-        const navbar = document.getElementById('mainNavbar');
-        if (navbar) {
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 10) {
-                    navbar.classList.add('scrolled');
-                } else {
-                    navbar.classList.remove('scrolled');
-                }
-            }, { passive: true });
-        }
+      <form action="/profile/change-password" method="POST">
+        <h4 style="font-size: 0.9rem; margin-bottom: var(--space-3);">Change Password</h4>
+        <div style="margin-bottom: var(--space-2);">
+          <label class="form-label">Current Password</label>
+          <input type="password" name="current_password" class="form-input" required>
+        </div>
+        <div style="margin-bottom: var(--space-3);">
+          <label class="form-label">New Password (min 8 chars, 1 uppercase, 1 digit)</label>
+          <input type="password" name="new_password" class="form-input" required>
+        </div>
+        <button type="submit" class="btn btn-secondary" style="width: 100%;">Update Password</button>
+      </form>
+    </div>
+  </div>
+  {% endif %}
 
-        {% if error %}
-        window.addEventListener('DOMContentLoaded', () => {
-            GojoApp.toast.show({{ error | tojson }}, 'error');
-        });
-        {% endif %}
+  <main>
+    {% block content %}{% endblock %}
+  </main>
 
-        {% if success %}
-        window.addEventListener('DOMContentLoaded', () => {
-            GojoApp.toast.show({{ success | tojson }}, 'success');
-        });
-        {% endif %}
-    </script>
+  <footer class="app-footer">
+    <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
+      <div>Gojo · Modern Collaborative Trip Planner</div>
+      <div>
+        <a href="/privacy">Privacy Policy</a>
+        <span>·</span>
+        <a href="/terms">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
 
-    {% block extra_js %}{% endblock %}
+  <div id="toast-container"></div>
+  <script src="/static/js/toast.js"></script>
+
+  <script>
+    lucide.createIcons();
+
+    function toggleDropdown(id) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = el.style.display === 'block' ? 'none' : 'block';
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.user-avatar-btn') && !e.target.closest('.dropdown-panel')) {
+        const dd = document.getElementById('userMenu');
+        if (dd) dd.style.display = 'none';
+      }
+    });
+
+    function openProfileModal() {
+      const modal = document.getElementById('profileModal');
+      if (modal) modal.style.display = 'flex';
+    }
+
+    function closeProfileModal() {
+      const modal = document.getElementById('profileModal');
+      if (modal) modal.style.display = 'none';
+    }
+  </script>
+
+  {% block extra_js %}{% endblock %}
 </body>
-
 </html>

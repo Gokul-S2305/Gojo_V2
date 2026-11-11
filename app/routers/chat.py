@@ -1,17 +1,16 @@
-from fastapi import APIRouter, Request, Depends, Form, status
+from fastapi import APIRouter, Request, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
-from sqlalchemy import text
 from app.database import get_session
 from app.models import User, Trip, TripUserLink, Message
 from app.auth_utils import get_current_user
+from app.config import settings as cfg
 from pathlib import Path
 from typing import Dict, List
-import asyncio
+import jwt
 import logging
-from fastapi import WebSocket, WebSocketDisconnect
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +48,8 @@ class ConnectionManager:
             except Exception:
                 dead.append(conn_tuple)
         for d in dead:
-            self.active_connections[trip_id].remove(d)
+            if d in self.active_connections[trip_id]:
+                self.active_connections[trip_id].remove(d)
 
     def get_online_users(self, trip_id: int) -> List[dict]:
         if trip_id not in self.active_connections:
@@ -73,17 +73,13 @@ async def websocket_chat(
     session: AsyncSession = Depends(get_session)
 ):
     """WebSocket endpoint for real-time trip chat."""
-    # Authenticate via cookie
     access_token = websocket.cookies.get("access_token")
     user = None
 
     if access_token:
         try:
-            from app.auth_utils import get_current_user as _get_user
-            # Manual token decode since we can't use Depends directly in WS
-            from jose import jwt
-            from app.config import settings as cfg
-            scheme, token = access_token.split()
+            parts = access_token.split()
+            token = parts[1] if len(parts) == 2 else parts[0]
             payload = jwt.decode(token, cfg.secret_key, algorithms=[cfg.algorithm])
             user_id = payload.get("user_id")
             if user_id:
@@ -112,7 +108,6 @@ async def websocket_chat(
 
     await manager.connect(websocket, trip_id, user.id, user_name)
 
-    # Notify others that user joined
     await manager.broadcast_to_trip(trip_id, {
         "type": "user_joined",
         "user_id": user.id,
@@ -128,13 +123,11 @@ async def websocket_chat(
             if not content or len(content) > 2000:
                 continue
 
-            # Save message to DB
             new_message = Message(trip_id=trip_id, user_id=user.id, content=content)
             session.add(new_message)
             await session.commit()
             await session.refresh(new_message)
 
-            # Broadcast to all trip members
             await manager.broadcast_to_trip(trip_id, {
                 "type": "message",
                 "id": new_message.id,
@@ -145,7 +138,6 @@ async def websocket_chat(
                 "user_initial": user_initial,
             })
 
-            # Send push notification to offline members
             try:
                 from app.routers.push import send_trip_notification
                 await send_trip_notification(
@@ -183,7 +175,7 @@ async def trip_chat(
     trip = trip_result.scalar_one_or_none()
 
     if not trip:
-        return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=404, detail="Trip not found")
 
     link_statement = select(TripUserLink).where(
         TripUserLink.trip_id == trip_id,
@@ -191,13 +183,15 @@ async def trip_chat(
     )
     link_result = await session.execute(link_statement)
     if not link_result.scalar_one_or_none():
-        return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
+        raise HTTPException(status_code=404, detail="Trip not found")
 
-    # Get messages with user info via JOIN (fixes N+1)
-    from app.models import User as UserModel
-    messages_statement = select(Message, UserModel).join(
-        UserModel, Message.user_id == UserModel.id
-    ).where(Message.trip_id == trip_id).order_by(Message.timestamp.asc())
+    # Get messages with user info via JOIN
+    messages_statement = (
+        select(Message, User)
+        .join(User, Message.user_id == User.id)
+        .where(Message.trip_id == trip_id)
+        .order_by(Message.timestamp.asc())
+    )
     messages_result = await session.execute(messages_statement)
     messages_data = messages_result.all()
 
@@ -209,6 +203,7 @@ async def trip_chat(
             "user_id": msg.user_id,
             "user_name": msg_user.full_name or msg_user.email,
             "user_initial": (msg_user.full_name or msg_user.email)[0].upper(),
+            "is_self": msg.user_id == user.id
         }
         for msg, msg_user in messages_data
     ]
@@ -238,16 +233,14 @@ async def get_messages(
     )
     link_result = await session.execute(link_statement)
     if not link_result.scalar_one_or_none():
-        return JSONResponse({"error": "Unauthorized"}, status_code=401)
+        return JSONResponse({"error": "Trip not found"}, status_code=404)
 
-    from app.models import User as UserModel
-    messages_statement = select(Message, UserModel).join(
-        UserModel, Message.user_id == UserModel.id
-    ).where(
-        Message.trip_id == trip_id,
-        Message.id > since_id
-    ).order_by(Message.timestamp.asc())
-
+    messages_statement = (
+        select(Message, User)
+        .join(User, Message.user_id == User.id)
+        .where(Message.trip_id == trip_id, Message.id > since_id)
+        .order_by(Message.timestamp.asc())
+    )
     messages_result = await session.execute(messages_statement)
     messages_data = messages_result.all()
 
@@ -259,6 +252,7 @@ async def get_messages(
             "user_id": msg.user_id,
             "user_name": msg_user.full_name or msg_user.email,
             "user_initial": (msg_user.full_name or msg_user.email)[0].upper(),
+            "is_self": msg.user_id == user.id
         }
         for msg, msg_user in messages_data
     ]

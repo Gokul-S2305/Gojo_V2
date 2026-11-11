@@ -48,6 +48,15 @@ class Settings(BaseSettings):
     google_project_id: str = ""
     google_project_no: str = ""
 
+    # Cloudinary Uploads
+    cloudinary_cloud_name: str = ""
+    cloudinary_api_key: str = ""
+    cloudinary_api_secret: str = ""
+    cloudinary_url: str = ""
+
+    # Sentry Error Tracking
+    sentry_dsn: str = ""
+
     # Maps Integration
     google_maps_api_key: str = ""
 

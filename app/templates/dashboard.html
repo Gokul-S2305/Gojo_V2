@@ -6,7 +6,7 @@
 
   <!-- ===== Hero: Next Upcoming Trip or Clean Welcome ===== -->
   {% if next_trip %}
-  <div class="card" style="margin-bottom: var(--space-8); overflow: hidden; border: 1px solid var(--border-medium); box-shadow: var(--shadow-sm);">
+  <div class="card travel-hero" style="margin-bottom: var(--space-8); overflow: hidden; border: 1px solid var(--border-medium); box-shadow: var(--shadow-sm);">
     <div style="display: grid; grid-template-columns: 1fr 340px; min-height: 200px;">
       <div style="padding: var(--space-8); display: flex; flex-direction: column; justify-content: space-between; background: var(--bg-surface);">
         <div>
@@ -44,7 +44,7 @@
         </div>
       </div>
 
-      <div style="position: relative; background: #1E293B; overflow: hidden; min-height: 180px;">
+      <div class="travel-hero-image" style="position: relative; background: #1E293B; overflow: hidden; min-height: 180px;">
         <img
           src="{{ next_trip.cover_image_url or 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&w=800&q=80' }}"
           alt="{{ next_trip.destination }}"
@@ -59,13 +59,17 @@
     </div>
   </div>
   {% else %}
-  <div class="card" style="margin-bottom: var(--space-8); padding: var(--space-8); background: var(--bg-surface); border: 1px solid var(--border-medium);">
-    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-4);">
-      <div>
+  <div class="card travel-hero dashboard-welcome">
+    <div class="dashboard-welcome-content">
+      <div class="dashboard-welcome-copy">
+        <span class="dashboard-eyebrow">
+          <i data-lucide="sparkles" aria-hidden="true"></i>
+          Your next adventure starts here
+        </span>
         <h1 style="font-size: 1.75rem; margin-bottom: var(--space-2);">Welcome back, {{ user.full_name or 'Traveler' }}.</h1>
         <p style="color: var(--text-secondary); margin: 0; font-size: 0.95rem;">You have no active trips coming up. Ready to plan your next journey?</p>
       </div>
-      <div style="display: flex; gap: var(--space-3);">
+      <div class="dashboard-welcome-actions">
         <button class="btn btn-primary" onclick="openModal('createTripModal')">
           <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
           Create a Trip
@@ -104,9 +108,9 @@
     {% for trip in trips %}
     {% set is_past = trip.end_date < today %}
     {% set is_active = trip.start_date <= today and trip.end_date >= today %}
-    <div class="card" style="display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-subtle); transition: all var(--transition-fast);">
+    <div class="card trip-card" style="display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-subtle); transition: all var(--transition-fast);">
       <!-- Photo Cover Header -->
-      <div style="height: 140px; position: relative; background: #0F172A; overflow: hidden;">
+      <div class="trip-card-cover" style="height: 140px; position: relative; background: #0F172A; overflow: hidden;">
         <img
           src="{{ trip.cover_image_url or 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?auto=format&fit=crop&w=600&q=80' }}"
           alt="{{ trip.destination }}"
@@ -167,8 +171,8 @@
   </div>
   {% else %}
   <!-- Empty State -->
-  <div class="card" style="padding: var(--space-12) var(--space-4); text-align: center; border: 1px dashed var(--border-medium);">
-    <div style="width: 56px; height: 56px; border-radius: var(--radius-full); background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-4);">
+  <div class="card travel-empty-state">
+    <div class="travel-empty-icon">
       <i data-lucide="compass" style="width: 28px; height: 28px;"></i>
     </div>
     <h3 style="font-size: 1.25rem; margin-bottom: var(--space-2);">No trips planned yet</h3>

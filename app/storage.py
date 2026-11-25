@@ -4,7 +4,7 @@ Supports Cloudinary with automatic fallback to local disk storage.
 """
 import logging
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Tuple
 import aiofiles
 import uuid
 from app.config import settings
@@ -55,7 +55,7 @@ async def upload_file(
     resource_type: str = "auto"
 ) -> Tuple[str, str]:
     """
-    Upload a file either to Cloudinary (if configured) or local storage.
+    Upload a file to Cloudinary. Local storage is allowed only for development.
     Returns a tuple of (file_url, storage_id_or_path).
     """
     file_ext = Path(filename).suffix.lower()
@@ -74,14 +74,20 @@ async def upload_file(
                     content,
                     folder=folder,
                     resource_type=resource_type,
-                    public_id=Path(unique_filename).stem
+                    public_id=Path(unique_filename).stem,
+                    type="authenticated"
                 )
             )
             secure_url = result.get("secure_url") or result.get("url")
             public_id = result.get("public_id")
             return secure_url, public_id
         except Exception as e:
-            logger.error(f"Cloudinary upload failed, falling back to local disk: {e}")
+            logger.error("Cloudinary upload failed: %s", e)
+            if settings.is_production:
+                raise RuntimeError("File storage unavailable") from e
+
+    if settings.is_production:
+        raise RuntimeError("Cloudinary is required in production")
 
     # Fallback: Save to local uploads directory
     target_dir = LOCAL_UPLOADS_DIR / folder
@@ -125,3 +131,23 @@ async def delete_file(storage_id_or_path: str, resource_type: str = "image"):
             )
         except Exception as e:
             logger.warning(f"Cloudinary deletion failed for {storage_id_or_path}: {e}")
+
+
+def signed_download_url(storage_id: str, resource_type: str = "image", expires_seconds: int = 300) -> str:
+    """Create a short-lived signed URL for an authenticated Cloudinary asset."""
+    if not is_cloudinary_configured():
+        raise RuntimeError("Cloudinary is not configured")
+    import cloudinary
+    import cloudinary.utils
+    init_cloudinary()
+    from time import time
+    url, _ = cloudinary.utils.cloudinary_url(
+        storage_id,
+        resource_type=resource_type,
+        type="authenticated",
+        sign_url=True,
+        secure=True,
+        attachment=True,
+        expires_at=int(time()) + expires_seconds,
+    )
+    return url

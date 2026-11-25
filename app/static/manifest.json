@@ -4,13 +4,19 @@
   "description": "Plan, collaborate, and share your travel adventures. Your complete trip companion.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#4F46E5",
-  "theme_color": "#4F46E5",
+  "background_color": "#F7F8F5",
+  "theme_color": "#147D75",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
   "categories": ["travel", "lifestyle", "productivity"],
   "icons": [
+    {
+      "src": "/static/logo.jpg",
+      "sizes": "1024x1024",
+      "type": "image/jpeg",
+      "purpose": "any"
+    },
     {
       "src": "/static/images/icon-192.png",
       "sizes": "192x192",

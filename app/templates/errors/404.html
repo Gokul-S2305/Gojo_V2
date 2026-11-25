@@ -4,7 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Page Not Found · Gojo</title>
+  <link rel="icon" type="image/jpeg" href="/static/logo.jpg">
   <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/travel-experience.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
@@ -28,16 +30,16 @@
       border-radius: var(--radius-xl);
       box-shadow: var(--shadow-md);
     }
-    .icon-wrapper {
-      width: 64px;
-      height: 64px;
-      border-radius: var(--radius-full);
-      background: var(--primary-light);
-      color: var(--primary);
+    .error-logo {
+      width: 96px;
+      height: 96px;
+      border-radius: var(--radius-xl);
+      object-fit: contain;
       display: flex;
       align-items: center;
       justify-content: center;
       margin: 0 auto var(--space-4);
+      box-shadow: var(--shadow-sm);
     }
     .error-title {
       font-size: 1.5rem;
@@ -52,9 +54,7 @@
 </head>
 <body>
   <div class="error-card">
-    <div class="icon-wrapper">
-      <i data-lucide="compass" style="width: 32px; height: 32px;"></i>
-    </div>
+    <img class="error-logo" src="/static/logo.jpg" alt="Gojo — Where Journeys Become Memories">
     <h1 class="error-title">Destination Not Found</h1>
     <p class="error-desc">The trip or page you are looking for doesn't exist, has been removed, or you don't have permission to access it.</p>
     <a href="/dashboard" class="btn btn-primary" style="width: 100%;">

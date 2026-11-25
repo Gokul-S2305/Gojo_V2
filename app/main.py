@@ -7,6 +7,10 @@ from pathlib import Path
 from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 import logging
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from app.limiter import limiter
+from app.routers import auth, dashboard, maps, gallery, chat, export as export_router, documents, push
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +46,6 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Gojo Trip Planner", lifespan=lifespan)
 
 # Setup SlowAPI Rate Limiter
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from app.limiter import limiter
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
@@ -86,7 +87,7 @@ def format_date_range_filter(start, end):
     if not start or not end:
         return ""
     try:
-        from datetime import datetime, date
+        from datetime import datetime
         if isinstance(start, str):
             start = datetime.strptime(str(start)[:10], "%Y-%m-%d").date()
         if isinstance(end, str):
@@ -103,14 +104,7 @@ def format_date_range_filter(start, end):
 templates.env.filters["format_date"] = format_date_filter
 templates.env.filters["format_date_range"] = format_date_range_filter
 
-# Mount uploads directory for local fallback serving
-uploads_path = Path(__file__).parent.parent / "uploads"
-uploads_path.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=uploads_path), name="uploads")
-
 # Include Routers
-from app.routers import auth, dashboard, maps, gallery, chat, export as export_router, documents, push
-
 app.include_router(auth.router)
 app.include_router(dashboard.router)
 app.include_router(maps.router)

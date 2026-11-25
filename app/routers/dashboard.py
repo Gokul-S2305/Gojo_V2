@@ -6,12 +6,32 @@ from sqlmodel import select
 from app.database import get_session
 from app.models import User, Trip, TripUserLink, ItineraryItem, Expense, Document
 from app.auth_utils import get_current_user
+from app.limiter import limiter
 from pathlib import Path
-from datetime import date, datetime
+from datetime import date
 import secrets
+import math
+import logging
+import string
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
+
+def _format_date_range(start, end):
+    if not start or not end:
+        return ""
+    if isinstance(start, str):
+        start = date.fromisoformat(start[:10])
+    if isinstance(end, str):
+        end = date.fromisoformat(end[:10])
+    if start.year == end.year and start.month == end.month:
+        return f"{start.day}-{end.day} {start.strftime('%b %Y')}"
+    if start.year == end.year:
+        return f"{start.strftime('%d %b')} - {end.strftime('%d %b %Y')}"
+    return f"{start.strftime('%d %b %Y')} - {end.strftime('%d %b %Y')}"
+
+templates.env.filters["format_date_range"] = _format_date_range
 
 # Exclude ambiguous characters: 0/O, 1/I/L
 _JOIN_CODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"
@@ -28,11 +48,17 @@ async def generate_join_code(session: AsyncSession) -> str:
 
 
 def _title(value: str | None) -> str | None:
-    """Title-case a string, preserving None and stripping whitespace."""
     if not value:
         return None
-    return value.strip().title()
+    value = value.strip()
+    return string.capwords(value) if value.islower() else value
 
+def _parse_dates(start: str, end: str):
+    try:
+        s, e = date.fromisoformat(start), date.fromisoformat(end)
+    except ValueError:
+        return None
+    return (s, e) if e >= s else None
 
 def calculate_expense_split(members: list, expenses: list) -> tuple:
     """
@@ -186,12 +212,18 @@ async def create_trip(
     if not user:
         return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
 
-    join_code = await generate_join_code(session)
-    s_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-    e_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+    dates = _parse_dates(start_date, end_date)
+    if not dates:
+        return RedirectResponse("/dashboard?error=Please+check+your+dates", status_code=status.HTTP_302_FOUND)
+    s_date, e_date = dates
 
-    cleaned_name = _title(trip_name) or trip_name.strip()
-    cleaned_dest = _title(destination) or destination.strip()
+    if estimated_budget is not None and (not math.isfinite(estimated_budget) or estimated_budget < 0):
+        return RedirectResponse("/dashboard?error=Invalid+budget", status_code=302)
+
+    join_code = await generate_join_code(session)
+
+    cleaned_name = (_title(trip_name) or trip_name.strip())[:80]
+    cleaned_dest = (_title(destination) or destination.strip())[:80]
     cleaned_start = _title(start_location) if start_location else None
 
     new_trip = Trip(
@@ -214,20 +246,18 @@ async def create_trip(
                 folder_id = await create_trip_folder(service, cleaned_name, parent_id)
                 new_trip.drive_folder_id = folder_id
             except Exception as e:
-                logger.warning(f"Drive folder creation failed: {e}")
+                logger.warning("Drive folder creation failed: %s", e)
 
     session.add(new_trip)
-    await session.commit()
-    await session.refresh(new_trip)
-
-    link = TripUserLink(trip_id=new_trip.id, user_id=user.id, role="organizer")
-    session.add(link)
+    await session.flush()
+    session.add(TripUserLink(trip_id=new_trip.id, user_id=user.id, role="organizer"))
     await session.commit()
 
     return RedirectResponse(f"/trip/{new_trip.id}?msg=Trip+created+successfully", status_code=status.HTTP_302_FOUND)
 
 
 @router.post("/trip/join")
+@limiter.limit("10/minute")
 async def join_trip(
     request: Request,
     user: User = Depends(get_current_user),
@@ -271,25 +301,8 @@ async def quick_join(
     clean_code = join_code.strip().upper()
     if not user:
         return RedirectResponse(f"/login?next=/join/{clean_code}", status_code=status.HTTP_302_FOUND)
-
-    statement = select(Trip).where(Trip.join_code == clean_code)
-    result = await session.execute(statement)
-    trip = result.scalar_one_or_none()
-
-    if not trip:
-        raise HTTPException(status_code=404, detail="Invalid invite link")
-
-    link_statement = select(TripUserLink).where(
-        TripUserLink.trip_id == trip.id,
-        TripUserLink.user_id == user.id
-    )
-    existing_link = await session.execute(link_statement)
-    if not existing_link.scalar_one_or_none():
-        link = TripUserLink(trip_id=trip.id, user_id=user.id, role="member")
-        session.add(link)
-        await session.commit()
-
-    return RedirectResponse(f"/trip/{trip.id}?msg=Joined+{trip.name}", status_code=status.HTTP_302_FOUND)
+    request.session["invite_code"] = clean_code
+    return RedirectResponse("/dashboard", status_code=status.HTTP_302_FOUND)
 
 
 # ---------------------------------------------------------------------------
@@ -354,12 +367,17 @@ async def edit_trip(
     if link.role != "organizer":
         raise HTTPException(status_code=403, detail="Organizer permission required to edit trip")
 
+    dates = _parse_dates(start_date, end_date)
+    if not dates:
+        return RedirectResponse(f"/trip/{trip_id}?error=Please+check+your+dates", status_code=status.HTTP_302_FOUND)
+    s_date, e_date = dates
+
     trip = await session.get(Trip, trip_id)
     if trip:
-        trip.name = _title(trip_name) or trip_name.strip()
-        trip.destination = _title(destination) or destination.strip()
-        trip.start_date = datetime.strptime(start_date, "%Y-%m-%d").date()
-        trip.end_date = datetime.strptime(end_date, "%Y-%m-%d").date()
+        trip.name = (_title(trip_name) or trip_name.strip())[:80]
+        trip.destination = (_title(destination) or destination.strip())[:80]
+        trip.start_date = s_date
+        trip.end_date = e_date
         trip.start_location = _title(start_location) if start_location else None
         trip.estimated_budget = estimated_budget
         trip.notes = notes.strip() if notes else None
@@ -624,7 +642,10 @@ async def reorder_itinerary(
     items_order = data.get("items", [])  # [{"id": 1, "day_number": 1, "order_index": 0}, ...]
 
     for item_data in items_order:
-        item = await session.get(ItineraryItem, item_data["id"])
+        item_id = item_data.get("id")
+        if item_id is None:
+            return JSONResponse({"error": "Missing itinerary item id"}, status_code=422)
+        item = await session.get(ItineraryItem, item_id)
         if item and item.trip_id == trip_id:
             item.day_number = item_data.get("day_number", item.day_number)
             item.order_index = item_data.get("order_index", 0)
@@ -659,6 +680,9 @@ async def create_expense(
     if not link_result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Trip not found")
 
+    if not math.isfinite(amount) or amount <= 0:
+        raise HTTPException(status_code=422, detail="Amount must be a positive number")
+
     new_expense = Expense(
         trip_id=trip_id,
         user_id=user.id,
@@ -685,6 +709,9 @@ async def edit_expense(
 ):
     if not user:
         return RedirectResponse("/login", status_code=status.HTTP_302_FOUND)
+
+    if not math.isfinite(amount) or amount <= 0:
+        raise HTTPException(status_code=422, detail="Amount must be a positive number")
 
     expense_statement = select(Expense).where(Expense.id == expense_id, Expense.trip_id == trip_id)
     expense_result = await session.execute(expense_statement)

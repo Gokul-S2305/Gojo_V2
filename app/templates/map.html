@@ -62,7 +62,7 @@
       </div>
       <div style="color: var(--text-muted);"><i data-lucide="arrow-right" style="width: 16px; height: 16px;"></i></div>
       <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <span style="width: 12px; height: 12px; border-radius: 50%; background: #4F46E5; display: inline-block;"></span>
+        <span style="width: 12px; height: 12px; border-radius: 50%; background: var(--primary); display: inline-block;"></span>
         <span style="font-size: 0.875rem; color: var(--text-secondary);">Destination: <strong style="color: var(--text-primary);">{{ trip.destination }}</strong></span>
       </div>
       <div style="margin-left: auto; font-size: 0.8rem; color: var(--text-muted);">
@@ -109,7 +109,16 @@
       </div>
       {% endfor %}
     </div>
+    {% else %}
+    <div class="travel-ai-note" id="mapAiMessage" style="justify-content: space-between; align-items: center; flex-wrap: wrap;">
+      <span>Couldn't load suggestions, retry when you're ready.</span>
+      <button class="btn btn-secondary btn-sm" type="button" id="retryMapSuggestions">Try again</button>
+    </div>
     {% endif %}
+    <div class="travel-ai-note" style="margin-top: var(--space-4);">
+      <i data-lucide="info" style="width: 16px; height: 16px; flex: 0 0 auto; color: var(--primary);"></i>
+      <span>AI travel ideas can be inaccurate or change over time. Confirm details and availability before booking.</span>
+    </div>
   </div>
 
   {% else %}
@@ -123,6 +132,7 @@
 
 {% block extra_js %}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" crossorigin=""></script>
+<script src="/static/js/main.js"></script>
 {% if trip %}
 <script>
   const DEST_COORDS = {{ destination_coords | tojson }};
@@ -133,6 +143,25 @@
   window.addEventListener('DOMContentLoaded', () => {
     GojoApp.mapModule.init('tripMap', DEST_COORDS, START_COORDS, ROUTE_PATH, '', DEST_NAME);
   });
+
+  const retrySuggestions = document.getElementById('retryMapSuggestions');
+  if (retrySuggestions) {
+    retrySuggestions.addEventListener('click', async () => {
+      retrySuggestions.disabled = true;
+      retrySuggestions.textContent = 'Loading ideas…';
+      try {
+        const response = await fetch('/api/trip/{{ trip.id }}/recommendations?budget=mid&refresh=true');
+        const result = await response.json();
+        if (!response.ok) throw new Error(result.error || "Couldn't load suggestions, retry");
+        window.location.reload();
+      } catch (error) {
+        const message = document.querySelector('#mapAiMessage span');
+        if (message) message.textContent = error.message || "Couldn't load suggestions, retry";
+        retrySuggestions.disabled = false;
+        retrySuggestions.textContent = 'Try again';
+      }
+    });
+  }
 </script>
 {% endif %}
 {% endblock %}

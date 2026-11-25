@@ -1,11 +1,10 @@
-from fastapi import APIRouter, Request, Depends, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.database import get_session
 from app.models import User, Trip, TripUserLink, Expense, ItineraryItem, Document
 from app.auth_utils import get_current_user
-from pathlib import Path
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
 from reportlab.lib.units import inch

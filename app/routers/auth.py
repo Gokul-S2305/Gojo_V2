@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends, Form, status, Response
+﻿from fastapi import APIRouter, Request, Depends, Form, status, Response
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlmodel import select
@@ -28,7 +28,7 @@ def _make_cookie_params(access_token: str, remember: bool = False) -> dict:
         "httponly": True,
         "secure": settings.is_production,
         "samesite": "lax",
-        "max_age": 2592000 if remember else 1800,  # 30 days or 30 mins
+        "max_age": 2592000 if remember else settings.access_token_expire_minutes * 60,
     }
 
 
@@ -67,19 +67,15 @@ async def auth_google(request: Request, session: AsyncSession = Depends(get_sess
         user = result.scalar_one_or_none()
 
         if not user:
-            user = User(email=email, full_name=full_name, password_hash=None, drive_connected=True)
+            user = User(email=email, full_name=full_name, password_hash=None, drive_connected=False)
             session.add(user)
             await session.commit()
             await session.refresh(user)
-        elif not user.drive_connected:
-            user.drive_connected = True
-            session.add(user)
-            await session.commit()
-
         request.session['google_access_token'] = token.get('access_token')
         access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
 
-        resp = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+        next_url = request.session.pop("next", "/dashboard")
+        resp = RedirectResponse(url=next_url, status_code=status.HTTP_302_FOUND)
         resp.set_cookie(**_make_cookie_params(access_token, remember=False))
         return resp
 
@@ -142,6 +138,9 @@ async def register(
 @router.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     registered = request.query_params.get("registered")
+    next_url = request.query_params.get("next")
+    if next_url and next_url.startswith("/"):
+        request.session["next"] = next_url
     return templates.TemplateResponse("auth/login.html", {
         "request": request,
         "success": "Account created! You can now log in." if registered else None
@@ -170,7 +169,8 @@ async def login(
 
     access_token = create_access_token(data={"sub": user.email, "user_id": user.id})
 
-    resp = RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
+    next_url = request.session.pop("next", "/dashboard")
+    resp = RedirectResponse(url=next_url, status_code=status.HTTP_302_FOUND)
     resp.set_cookie(**_make_cookie_params(access_token, remember=remember))
     return resp
 
@@ -209,7 +209,7 @@ async def change_password(
 # Logout
 # ---------------------------------------------------------------------------
 
-@router.get("/logout")
+@router.post("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
     response.delete_cookie("access_token")

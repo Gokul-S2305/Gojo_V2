@@ -1,4 +1,3 @@
-import pytest
 from app.routers.dashboard import calculate_expense_split
 from app.models import User
 

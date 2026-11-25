@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="description" content="Gojo Trip Planner — Collaborative trip planning, itineraries, bookings, and expense splitting.">
-  <meta name="theme-color" content="#4F46E5">
+  <meta name="theme-color" content="#147D75">
+  <link rel="icon" type="image/jpeg" href="/static/logo.jpg">
 
   <title>{% block title %}Gojo · Modern Trip Planner{% endblock %}</title>
 
@@ -15,6 +16,7 @@
 
   <!-- Core Tokens & Styles -->
   <link rel="stylesheet" href="/static/css/tokens.css">
+  <link rel="stylesheet" href="/static/css/travel-experience.css">
   <script src="https://unpkg.com/lucide@latest"></script>
 
   <style>
@@ -199,17 +201,15 @@
   {% block extra_css %}{% endblock %}
 </head>
 <body>
-  {% if user %}
   <header class="top-navbar">
     <div class="navbar-inner">
       <a href="/dashboard" class="nav-brand">
-        <div class="brand-mark">
-          <i data-lucide="compass" style="width: 18px; height: 18px;"></i>
-        </div>
+        <img class="brand-logo" src="/static/logo.jpg" alt="Gojo — Where Journeys Become Memories">
         <span>Gojo</span>
       </a>
 
       <!-- Desktop Nav -->
+      {% if user %}
       <nav class="hide-mobile">
         <ul class="nav-links">
           <li>
@@ -232,8 +232,10 @@
           </li>
         </ul>
       </nav>
+      {% endif %}
 
       <!-- Right controls -->
+      {% if user %}
       <div class="nav-right">
         <div style="position: relative;">
           <div class="user-avatar-btn" onclick="toggleDropdown('userMenu')" title="{{ user.full_name or user.email }}">
@@ -254,16 +256,28 @@
               Edit Profile
             </div>
             <div class="dropdown-divider"></div>
-            <a href="/logout" class="dropdown-item" style="color: var(--danger);">
-              <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
-              Sign Out
-            </a>
+            <form action="/logout" method="POST" style="margin: 0;">
+              <button type="submit" class="dropdown-item" style="width: 100%; border: 0; background: transparent; color: var(--danger);">
+                <i data-lucide="log-out" style="width: 16px; height: 16px;"></i>
+                Sign Out
+              </button>
+            </form>
           </div>
         </div>
       </div>
+      {% else %}
+      <div class="nav-right guest-nav">
+        {% if request.url.path == '/register' %}
+        <a href="/login" class="btn btn-secondary btn-sm">Sign in</a>
+        {% else %}
+        <a href="/register" class="btn btn-primary btn-sm">Plan your trip</a>
+        {% endif %}
+      </div>
+      {% endif %}
     </div>
   </header>
 
+  {% if user %}
   <!-- Mobile Bottom Nav -->
   <nav class="mobile-bar">
     <a href="/dashboard" class="mobile-item {% if request.url.path == '/dashboard' %}active{% endif %}">
@@ -323,7 +337,10 @@
 
   <footer class="app-footer">
     <div style="max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;">
-      <div>Gojo · Modern Collaborative Trip Planner</div>
+      <div class="footer-brand">
+        <img src="/static/logo.jpg" alt="" width="32" height="32">
+        <span>Gojo · Where journeys become memories</span>
+      </div>
       <div>
         <a href="/privacy">Privacy Policy</a>
         <span>·</span>

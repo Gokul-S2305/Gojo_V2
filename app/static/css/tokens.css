@@ -4,17 +4,17 @@
    =================================================================== */
 
 :root {
-  /* Brand / Primary Palette (Indigo) */
-  --primary: #4F46E5;
-  --primary-hover: #4338CA;
-  --primary-active: #3730A3;
-  --primary-light: #EEF2FF;
-  --primary-border: #C7D2FE;
+  /* Brand palette: coastal teal with warm travel accents. */
+  --primary: #147D75;
+  --primary-hover: #10665F;
+  --primary-active: #0B514C;
+  --primary-light: #E5F4F1;
+  --primary-border: #B5DDD7;
   --primary-contrast: #FFFFFF;
 
   /* Accent / Utility Colors */
-  --accent: #0D9488;
-  --accent-light: #F0FDFA;
+  --accent: #E97856;
+  --accent-light: #FFF0EA;
   --success: #10B981;
   --success-light: #ECFDF5;
   --warning: #F59E0B;
@@ -24,29 +24,29 @@
   --danger-border: #FECACA;
 
   /* Surface & Background (Light Mode) */
-  --bg-page: #F8FAFC;
+  --bg-page: #F7F8F5;
   --bg-surface: #FFFFFF;
-  --bg-surface-hover: #F1F5F9;
+  --bg-surface-hover: #F1F5F1;
   --bg-surface-active: #E2E8F0;
-  --bg-muted: #F1F5F9;
-  --bg-subtle: #F8FAFC;
+  --bg-muted: #EFF4F1;
+  --bg-subtle: #F8FAF7;
 
   /* Borders & Dividers */
-  --border-subtle: #E2E8F0;
-  --border-medium: #CBD5E1;
-  --border-strong: #94A3B8;
+  --border-subtle: #E1E9E3;
+  --border-medium: #C9D7CE;
+  --border-strong: #91A79A;
 
   /* Typography Colors */
-  --text-primary: #0F172A;
-  --text-secondary: #475569;
-  --text-muted: #64748B;
+  --text-primary: #18332F;
+  --text-secondary: #526B65;
+  --text-muted: #748780;
   --text-inverse: #FFFFFF;
 
   /* Shadows (crisp & subtle) */
-  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
-  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-xs: 0 1px 2px 0 rgb(25 66 57 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(25 66 57 / 0.07), 0 1px 2px -1px rgb(25 66 57 / 0.06);
+  --shadow-md: 0 8px 18px -8px rgb(25 66 57 / 0.18), 0 2px 6px -2px rgb(25 66 57 / 0.08);
+  --shadow-lg: 0 16px 34px -14px rgb(25 66 57 / 0.24), 0 4px 10px -4px rgb(25 66 57 / 0.1);
 
   /* Border Radii */
   --radius-xs: 4px;
@@ -136,6 +136,10 @@ a:hover {
   background-color: var(--primary-hover);
   border-color: var(--primary-hover);
   color: #FFFFFF;
+}
+
+.btn-primary {
+  box-shadow: 0 5px 14px rgb(20 125 117 / 0.18);
 }
 
 .btn-secondary {

@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, Depends, UploadFile, File, Form, status, HTTPException
-from fastapi.responses import HTMLResponse, RedirectResponse, FileResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
@@ -7,7 +7,7 @@ from app.database import get_session
 from app.models import User, Trip, TripUserLink, Photo
 from app.auth_utils import get_current_user
 from app.config import settings
-from app.storage import upload_file, delete_file, LOCAL_UPLOADS_DIR
+from app.storage import upload_file, delete_file
 from pathlib import Path
 import logging
 
@@ -139,7 +139,7 @@ async def upload_photo(
             status_code=status.HTTP_302_FOUND
         )
 
-    content = await photo.read()
+    content = await photo.read(MAX_UPLOAD_BYTES + 1)
     if len(content) > MAX_UPLOAD_BYTES:
         return RedirectResponse(
             f"/trip/{trip_id}/gallery?error=File+too+large+(max+10MB)",

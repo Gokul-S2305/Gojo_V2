@@ -3,12 +3,12 @@
  * Handles offline caching and push notifications
  */
 
-const CACHE_NAME = 'gojo-v2';
+const CACHE_NAME = 'gojo-v3';
 const STATIC_ASSETS = [
-    '/static/css/design-system.css',
-    '/static/css/components.css',
-    '/static/css/main.css',
+    '/static/css/tokens.css',
+    '/static/css/travel-experience.css',
     '/static/js/main.js',
+    '/static/js/toast.js',
     '/static/manifest.json',
     '/static/images/icon-192.png',
     '/static/images/icon-512.png',
@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// ===== Fetch: network-first for API, cache-first for static =====
+// ===== Fetch: network-first for current content, cached fallback offline =====
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     const url = new URL(request.url);
@@ -50,18 +50,17 @@ self.addEventListener('fetch', (event) => {
     // API requests: network only
     if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/auth/')) return;
 
-    // Static assets: cache first, then network
+    // Prefer current deployed assets; use cache only when offline.
     if (url.pathname.startsWith('/static/')) {
         event.respondWith(
-            caches.match(request).then(cached => {
-                if (cached) return cached;
-                return fetch(request).then(response => {
-                    if (response && response.status === 200) {
-                        const clone = response.clone();
-                        caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
-                    }
-                    return response;
-                }).catch(() => cached);
+            fetch(request).then(response => {
+                if (response && response.status === 200) {
+                    const clone = response.clone();
+                    caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+                }
+                return response;
+            }).catch(() => {
+                return caches.match(request);
             })
         );
         return;

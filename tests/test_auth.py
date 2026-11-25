@@ -1,4 +1,3 @@
-import pytest
 from app.auth_utils import (
     validate_password_strength,
     get_password_hash,

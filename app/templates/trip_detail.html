@@ -168,8 +168,21 @@
 
   <!-- ================= TAB: ITINERARY ================= -->
   <div id="itineraryTab" class="tab-content active">
-    <div style="display: grid; grid-template-columns: 1fr 340px; gap: var(--space-6);">
+    <div class="trip-itinerary-layout" style="display: grid; grid-template-columns: 1fr 340px; gap: var(--space-6);">
       <div>
+        <div class="card" style="padding: var(--space-5); margin-bottom: var(--space-5);">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); flex-wrap: wrap;">
+            <div>
+              <h3 style="font-size: 1.05rem; margin-bottom: 0.3rem;">Plan the days with AI</h3>
+              <p style="font-size: 0.82rem; color: var(--text-secondary); margin: 0;">Get a day-by-day draft for {{ trip.destination }}. Review it before adding activities.</p>
+            </div>
+            <button type="button" class="btn btn-secondary btn-sm" id="generateAiItineraryBtn" onclick="generateAiItinerary()">
+              <i data-lucide="sparkles" style="width: 15px; height: 15px;"></i>
+              Create draft
+            </button>
+          </div>
+          <div id="aiItineraryContainer" style="margin-top: var(--space-4);" aria-live="polite"></div>
+        </div>
         {% if itinerary_by_day %}
         {% for day_num, items in itinerary_by_day.items() %}
         <div style="margin-bottom: var(--space-8);">
@@ -456,7 +469,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-6);">
         <div>
           <h2 style="font-size: 1.35rem; margin: 0 0 0.2rem 0;">AI Recommendations for {{ trip.destination }}</h2>
-          <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">Verified spots, dining, and activities tailored to your budget</p>
+          <p style="color: var(--text-secondary); font-size: 0.875rem; margin: 0;">Ideas for stays, dining, and places to explore, matched to your budget.</p>
         </div>
 
         <div style="display: flex; align-items: center; gap: var(--space-3);">
@@ -476,6 +489,10 @@
       <div id="aiRecommendationsContainer">
         <div class="skeleton" style="height: 120px; margin-bottom: 1rem;"></div>
         <div class="skeleton" style="height: 120px; margin-bottom: 1rem;"></div>
+      </div>
+      <div class="travel-ai-note" style="margin-top: var(--space-4);">
+        <i data-lucide="info" style="width: 16px; height: 16px; flex: 0 0 auto; color: var(--primary);"></i>
+        <span>AI-generated travel ideas can be inaccurate or change over time. Confirm details, opening hours, and prices before booking.</span>
       </div>
     </div>
   </div>
@@ -637,97 +654,210 @@
 
   function fetchRecommendations(forceRefresh) {
     const container = document.getElementById('aiRecommendationsContainer');
-    container.innerHTML = `
-      <div class="skeleton" style="height: 100px; margin-bottom: 1rem;"></div>
-      <div class="skeleton" style="height: 100px; margin-bottom: 1rem;"></div>
-    `;
+    const refreshButton = document.getElementById('refreshRecsBtn');
+    container.replaceChildren();
+    const loading = document.createElement('p');
+    loading.className = 'travel-reveal';
+    loading.textContent = 'Finding ideas for your trip…';
+    container.appendChild(loading);
+    if (refreshButton) refreshButton.disabled = true;
 
-    fetch(`/api/trip/{{ trip.id }}/recommendations?budget=${currentBudget}&refresh=${forceRefresh}`)
-      .then(r => r.json())
+    fetch(`/api/trip/{{ trip.id }}/recommendations?budget=${encodeURIComponent(currentBudget)}&refresh=${Boolean(forceRefresh)}`)
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Couldn't load suggestions, retry");
+        return data;
+      })
       .then(data => {
         window.aiLoaded = true;
         renderRecommendations(data);
       })
-      .catch(e => {
-        container.innerHTML = `<p style="color: var(--danger);">Failed to load recommendations. Please try again.</p>`;
+      .catch(error => {
+        window.aiLoaded = false;
+        renderRecommendations({ error: error.message || "Couldn't load suggestions, retry" });
+      })
+      .finally(() => {
+        if (refreshButton) refreshButton.disabled = false;
       });
   }
 
   function renderRecommendations(data) {
     const container = document.getElementById('aiRecommendationsContainer');
-    if (!data) return;
-
-    let html = '';
+    container.replaceChildren();
     if (data.error) {
-      html += `<div style="background: var(--warning-light); color: var(--warning); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; font-size: 0.85rem;">${data.error}</div>`;
+      const message = document.createElement('div');
+      message.className = 'travel-reveal';
+      const text = document.createElement('p');
+      text.textContent = data.error;
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn btn-secondary btn-sm';
+      retry.textContent = 'Try again';
+      retry.addEventListener('click', () => fetchRecommendations(true));
+      message.append(text, retry);
+      container.appendChild(message);
+      return;
     }
 
     const sections = [
-      { key: 'hotels', title: 'Top Stays', icon: 'building' },
-      { key: 'restaurants', title: 'Popular Dining', icon: 'utensils' },
-      { key: 'attractions', title: 'Must-Visit Places', icon: 'map-pin' }
+      { key: 'hotels', title: 'Places to stay' },
+      { key: 'restaurants', title: 'Places to eat' },
+      { key: 'attractions', title: 'Things to explore' },
+      { key: 'travel_tips', title: 'Local tips' }
     ];
 
     sections.forEach(s => {
-      const items = data[s.key] || [];
+      const items = Array.isArray(data[s.key]) ? data[s.key] : [];
       if (items.length > 0) {
-        html += `<h4 style="margin: 1.5rem 0 0.75rem 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.4rem;">
-          <i data-lucide="${s.icon}" style="width: 16px; height: 16px; color: var(--primary);"></i>
-          ${s.title}
-        </h4>`;
-        html += `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">`;
+        const heading = document.createElement('h4');
+        heading.className = 'travel-reveal';
+        heading.textContent = s.title;
+        container.appendChild(heading);
+        const grid = document.createElement('div');
+        grid.className = 'travel-ai-grid';
         items.forEach(item => {
-          const name = item.name || '';
-          const area = item.area || '';
-          const desc = item.description || '';
-          const price = item.price_range || '';
-          html += `
-            <div class="card" style="padding: 1rem; display: flex; flex-direction: column; justify-content: space-between;">
-              <div>
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.25rem;">
-                  <strong style="font-size: 0.95rem; color: var(--text-primary);">${name}</strong>
-                  ${price ? `<span class="badge badge-neutral" style="font-size: 0.7rem;">${price}</span>` : ''}
-                </div>
-                ${area ? `<div style="color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.4rem;">📍 ${area}</div>` : ''}
-                <p style="font-size: 0.825rem; color: var(--text-secondary); margin: 0 0 0.75rem 0; line-height: 1.4;">${desc}</p>
-              </div>
-              {% if is_organizer %}
-              <button class="btn btn-secondary btn-sm" onclick="addAiToItinerary('${name.replace(/'/g, "\\'")}', '${area.replace(/'/g, "\\'")}', '${desc.replace(/'/g, "\\'")}')">
-                <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Add to Itinerary
-              </button>
-              {% endif %}
-            </div>
-          `;
+          const card = document.createElement('div');
+          card.className = 'card travel-ai-card';
+          const nameEl = document.createElement('strong');
+          nameEl.textContent = item.name || item.title || 'Travel idea';
+          card.appendChild(nameEl);
+          const meta = [item.area, item.cuisine, item.category, item.price_range].filter(Boolean).join(' · ');
+          if (meta) {
+            const metaEl = document.createElement('span');
+            metaEl.className = 'badge badge-neutral';
+            metaEl.textContent = meta;
+            card.appendChild(metaEl);
+          }
+          const descEl = document.createElement('p');
+          descEl.textContent = item.description || item.advice || '';
+          descEl.style.cssText = 'font-size:0.84rem;color:var(--text-secondary);margin:0;line-height:1.55;';
+          card.appendChild(descEl);
+          {% if is_organizer %}
+          if (s.key !== 'travel_tips') {
+            const actions = document.createElement('div');
+            actions.style.cssText = 'display:flex;gap:0.5rem;margin-top:auto;';
+            const daySelect = document.createElement('select');
+            daySelect.className = 'form-select';
+            daySelect.setAttribute('aria-label', 'Choose trip day');
+            for (let day = 1; day <= {{ duration }}; day += 1) {
+              const option = document.createElement('option');
+              option.value = day;
+              option.textContent = `Day ${day}`;
+              daySelect.appendChild(option);
+            }
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'btn btn-secondary btn-sm';
+            addButton.textContent = 'Add to plan';
+            addButton.addEventListener('click', () => addAiToItinerary(
+              item.name || '', item.area || '', item.description || '',
+              Number(daySelect.value), item.category || 'Activity'
+            ));
+            actions.append(daySelect, addButton);
+            card.appendChild(actions);
+          }
+          {% endif %}
+          grid.appendChild(card);
         });
-        html += `</div>`;
+        container.appendChild(grid);
       }
     });
-
-    container.innerHTML = html;
+    if (!container.childElementCount) {
+      const empty = document.createElement('p');
+      empty.textContent = "No suggestions came back this time. Try again in a moment.";
+      container.appendChild(empty);
+    }
     lucide.createIcons();
   }
 
-  function addAiToItinerary(name, area, desc) {
-    const day = prompt('Which day of the trip would you like to add this to? (1 to {{ duration }})', '1');
-    if (!day) return;
-
-    fetch('/api/trip/{{ trip.id }}/itinerary/from-ai', {
+  async function addAiToItinerary(name, area, desc, day, category = 'Activity', time = '10:00') {
+    try {
+      const response = await fetch('/api/trip/{{ trip.id }}/itinerary/from-ai', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        day_number: parseInt(day),
+        day_number: Number(day),
         activity: name,
         location: area,
         description: desc,
-        category: 'Activity'
+        category,
+        time,
       })
-    })
-    .then(r => r.json())
-    .then(res => {
-      showToast(`Added "${name}" to Day ${day}!`, 'success');
-      setTimeout(() => window.location.reload(), 1200);
-    })
-    .catch(() => showToast('Failed to add item', 'error'));
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || 'Could not add this activity');
+      showToast(`Added "${name}" to Day ${day}.`, 'success');
+    } catch (error) {
+      showToast(error.message || 'Could not add this activity. Try again.', 'error');
+    }
+  }
+
+  async function generateAiItinerary() {
+    const button = document.getElementById('generateAiItineraryBtn');
+    const container = document.getElementById('aiItineraryContainer');
+    button.disabled = true;
+    container.textContent = 'Building a day-by-day draft…';
+    try {
+      const response = await fetch('/api/trip/{{ trip.id }}/ai-itinerary');
+      const itinerary = await response.json();
+      if (!response.ok) throw new Error(itinerary.error || "Couldn't load suggestions, retry");
+      renderAiItinerary(itinerary);
+    } catch (error) {
+      container.replaceChildren();
+      const message = document.createElement('p');
+      message.textContent = error.message || "Couldn't load suggestions, retry";
+      const retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn btn-secondary btn-sm';
+      retry.textContent = 'Try again';
+      retry.addEventListener('click', generateAiItinerary);
+      container.append(message, retry);
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  function renderAiItinerary(days) {
+    const container = document.getElementById('aiItineraryContainer');
+    container.replaceChildren();
+    if (!Array.isArray(days) || !days.length) {
+      container.textContent = "Couldn't load suggestions, retry";
+      return;
+    }
+    days.forEach((day, index) => {
+      const dayNumber = Number(day.day) || index + 1;
+      const section = document.createElement('section');
+      section.className = 'travel-reveal';
+      const heading = document.createElement('h4');
+      heading.textContent = `Day ${dayNumber}${day.theme ? ` · ${day.theme}` : ''}`;
+      section.appendChild(heading);
+      const list = document.createElement('div');
+      list.className = 'travel-ai-grid';
+      (Array.isArray(day.items) ? day.items : []).forEach(item => {
+        const card = document.createElement('article');
+        card.className = 'card travel-ai-card';
+        const title = document.createElement('strong');
+        title.textContent = item.activity || 'Suggested activity';
+        const details = document.createElement('p');
+        details.textContent = [item.time, item.location, item.description].filter(Boolean).join(' · ');
+        details.style.cssText = 'font-size:0.84rem;color:var(--text-secondary);margin:0;line-height:1.5;';
+        card.append(title, details);
+        {% if is_organizer %}
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.className = 'btn btn-secondary btn-sm';
+        addButton.textContent = 'Add to itinerary';
+        addButton.addEventListener('click', () => addAiToItinerary(
+          item.activity || '', item.location || '', item.description || '',
+          dayNumber, item.category || 'Activity', item.time || '10:00'
+        ));
+        card.appendChild(addButton);
+        {% endif %}
+        list.appendChild(card);
+      });
+      section.appendChild(list);
+      container.appendChild(section);
+    });
   }
 </script>
 {% endblock %}

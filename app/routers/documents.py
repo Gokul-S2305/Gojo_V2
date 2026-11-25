@@ -7,7 +7,7 @@ from app.database import get_session
 from app.models import User, Trip, TripUserLink, Document
 from app.auth_utils import get_current_user
 from app.config import settings
-from app.storage import upload_file, delete_file, LOCAL_UPLOADS_DIR
+from app.storage import upload_file, delete_file, LOCAL_UPLOADS_DIR, signed_download_url
 from pathlib import Path
 import logging
 
@@ -133,16 +133,24 @@ async def add_document(
 
     if attachment and attachment.filename:
         file_ext = Path(attachment.filename).suffix.lower()
-        if file_ext in ALLOWED_DOC_EXTENSIONS:
-            content = await attachment.read()
-            if len(content) <= settings.max_upload_size:
-                file_url, storage_id = await upload_file(
-                    content=content,
-                    filename=attachment.filename,
-                    folder=f"docs/{trip_id}",
-                    resource_type="auto"
-                )
-                stored_filename = Path(file_url).name
+        if file_ext not in ALLOWED_DOC_EXTENSIONS:
+            return RedirectResponse(
+                f"/trip/{trip_id}/documents?error=Invalid+file+type",
+                status_code=status.HTTP_302_FOUND
+            )
+        content = await attachment.read(settings.max_upload_size + 1)
+        if len(content) > settings.max_upload_size:
+            return RedirectResponse(
+                f"/trip/{trip_id}/documents?error=File+too+large",
+                status_code=status.HTTP_302_FOUND
+            )
+        file_url, storage_id = await upload_file(
+            content=content,
+            filename=attachment.filename,
+            folder=f"docs/{trip_id}",
+            resource_type="raw"
+        )
+        stored_filename = Path(file_url).name
 
     new_doc = Document(
         trip_id=trip_id,
@@ -231,8 +239,12 @@ async def download_document(
     if not doc or (not doc.file_url and not doc.file_path):
         raise HTTPException(status_code=404, detail="Attachment not found")
 
-    if doc.file_url and doc.file_url.startswith("http"):
-        return RedirectResponse(doc.file_url)
+    if doc.storage_id:
+        try:
+            signed_url = signed_download_url(doc.storage_id, resource_type="raw")
+            return RedirectResponse(signed_url)
+        except RuntimeError as e:
+            raise HTTPException(status_code=503, detail=str(e))
 
     # Local fallback file
     file_path = LOCAL_UPLOADS_DIR / f"docs/{trip_id}" / (doc.file_path or "")

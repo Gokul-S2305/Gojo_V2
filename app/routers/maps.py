@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Request, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,9 +9,10 @@ from app.auth_utils import get_current_user
 from app.config import settings
 from app.limiter import limiter
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import httpx
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import json
 import logging
 import asyncio
@@ -19,10 +20,27 @@ import asyncio
 logger = logging.getLogger(__name__)
 
 if settings.gemini_api_key:
-    genai.configure(api_key=settings.gemini_api_key)
+    genai_client = genai.Client(api_key=settings.gemini_api_key)
+else:
+    genai_client = None
 
 router = APIRouter()
 templates = Jinja2Templates(directory=Path(__file__).parent.parent / "templates")
+
+def _format_date_range(start, end):
+    if not start or not end:
+        return ""
+    if isinstance(start, str):
+        start = datetime.strptime(start[:10], "%Y-%m-%d").date()
+    if isinstance(end, str):
+        end = datetime.strptime(end[:10], "%Y-%m-%d").date()
+    if start.year == end.year and start.month == end.month:
+        return f"{start.day}-{end.day} {start.strftime('%b %Y')}"
+    if start.year == end.year:
+        return f"{start.strftime('%d %b')} - {end.strftime('%d %b %Y')}"
+    return f"{start.strftime('%d %b %Y')} - {end.strftime('%d %b %Y')}"
+
+templates.env.filters["format_date_range"] = _format_date_range
 
 CITY_COORDS = {
     "goa": (15.2993, 74.1240),
@@ -95,14 +113,10 @@ BUDGET_MAP = {
 
 def get_gemini_recommendations(destination: str, budget_tier: str = "mid") -> dict:
     """Generate recommendations without invented ratings and with strict JSON mode."""
-    if not settings.gemini_api_key:
-        return _fallback_recommendations(destination, budget_tier)
+    if genai_client is None:
+        return None
 
     try:
-        model = genai.GenerativeModel(
-            'gemini-1.5-flash',
-            generation_config={"response_mime_type": "application/json"}
-        )
         budget_desc = BUDGET_MAP.get(budget_tier, BUDGET_MAP["mid"])
         prompt = f"""
 Act as a travel guide for "{destination}". Budget preference is {budget_desc}.
@@ -124,52 +138,60 @@ Return a JSON object with this schema:
     {{"title": "Local Transport/Best season/Custom", "advice": "Practical advice for travelers"}}
   ]
 }}
+Use real, well-known places where possible, and do not invent facts or claim live availability.
 Provide 4-5 items per section.
 """
-        response = model.generate_content(prompt)
-        text = response.text.strip()
+        response = genai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.4,
+            ),
+        )
+        text = (response.text or "").strip()
+        if not text:
+            raise ValueError("The AI provider returned an empty response")
         data = json.loads(text)
+        if not isinstance(data, dict):
+            raise ValueError("The AI provider returned an invalid recommendations object")
+        for section in ("hotels", "restaurants", "attractions", "travel_tips"):
+            if not isinstance(data.get(section), list):
+                data[section] = []
         data["is_fallback"] = False
         return data
     except Exception as e:
         logger.warning(f"Gemini API error for {destination}: {e}")
-        fallback = _fallback_recommendations(destination, budget_tier)
-        fallback["error"] = "AI recommendations temporarily unavailable. Showing local guide picks."
-        fallback["is_fallback"] = True
-        return fallback
+        return None
 
 
-def _fallback_recommendations(destination: str, budget_tier: str) -> dict:
-    return {
-        "hotels": [
-            {"name": f"Central Heritage Stay ({destination})", "area": "City Center", "price_range": "₹₹", "description": "Comfortable, well-located stay close to major sights."},
-            {"name": f"Palm View Retreat", "area": "Quiet Outskirts", "price_range": "₹₹", "description": "Relaxing atmosphere with garden views and modern amenities."}
-        ],
-        "restaurants": [
-            {"name": f"Old Town Kitchen", "area": "Market District", "cuisine": "Local authentic", "price_range": "₹₹", "description": "Famous for regional curries and fresh specialties."},
-            {"name": f"Street Flavors Hub", "area": "Main Bazaar", "cuisine": "Street Food", "price_range": "₹", "description": "Quick bites, fresh snacks, and local favorites."}
-        ],
-        "attractions": [
-            {"name": f"Historic Old Town & Market", "area": "Central", "category": "Heritage", "description": "Wander through centuries-old streets, crafts shops, and vibrant architecture."},
-            {"name": f"Sunset Viewpoint", "area": "Hilltop / Coast", "category": "Nature", "description": "Best visited around 5:30 PM for panoramic evening vistas."}
-        ],
-        "travel_tips": [
-            {"title": "Local Transport", "advice": "Use app-based cabs or pre-negotiate autorickshaw fares before starting your ride."},
-            {"title": "Timing", "advice": "Visit popular outdoor sights early morning to beat both the heat and rush-hour crowds."}
-        ]
+def _cached_recommendations_are_usable(data: object, updated_at: datetime | None) -> bool:
+    if not isinstance(data, dict) or data.get("is_fallback") is True or not updated_at:
+        return False
+    if any(not isinstance(data.get(section), list) for section in ("hotels", "restaurants", "attractions", "travel_tips")):
+        return False
+    placeholders = {
+        "palm view retreat", "old town kitchen", "street flavors hub",
+        "historic old town & market", "sunset viewpoint",
     }
+    names = {
+        str(item.get("name", "")).casefold()
+        for section in ("hotels", "restaurants", "attractions")
+        for item in data.get(section, [])
+        if isinstance(item, dict)
+    }
+    if names & placeholders or any(name.startswith("central heritage stay") for name in names):
+        return False
+    timestamp = updated_at.replace(tzinfo=timezone.utc) if updated_at.tzinfo is None else updated_at
+    return timestamp >= datetime.now(timezone.utc) - timedelta(hours=12)
 
 
 def get_gemini_itinerary(destination: str, duration: int, start_location: str = None) -> list:
     """Generate structured AI itinerary without invented numbers."""
-    if not settings.gemini_api_key:
-        return _fallback_itinerary(destination, duration)
+    if genai_client is None:
+        return None
 
     try:
-        model = genai.GenerativeModel(
-            'gemini-1.5-flash',
-            generation_config={"response_mime_type": "application/json"}
-        )
         start_info = f" starting from {start_location}" if start_location else ""
         prompt = f"""
 Create a practical, real {duration}-day itinerary for a trip to "{destination}"{start_info}.
@@ -193,28 +215,24 @@ Return a JSON array of days:
 ]
 Include 3-4 items per day.
 """
-        response = model.generate_content(prompt)
-        text = response.text.strip()
-        return json.loads(text)
+        response = genai_client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                temperature=0.4,
+            ),
+        )
+        text = (response.text or "").strip()
+        if not text:
+            raise ValueError("The AI provider returned an empty itinerary")
+        itinerary = json.loads(text)
+        if not isinstance(itinerary, list):
+            raise ValueError("The AI provider returned an invalid itinerary")
+        return itinerary
     except Exception as e:
         logger.warning(f"Gemini itinerary error: {e}")
-        return _fallback_itinerary(destination, duration)
-
-
-def _fallback_itinerary(destination: str, duration: int) -> list:
-    itinerary = []
-    for day in range(1, duration + 1):
-        itinerary.append({
-            "day": day,
-            "theme": f"Explore {destination} - Day {day}",
-            "items": [
-                {"time": "09:00", "activity": f"Morning walk & local breakfast", "location": "Old Town", "category": "Food", "description": "Sample fresh local breakfast and coffee."},
-                {"time": "11:30", "activity": f"Visit {destination} landmarks", "location": "City Center", "category": "Sightseeing", "description": "Explore architecture and cultural exhibitions."},
-                {"time": "15:00", "activity": f"Afternoon market & craft shopping", "location": "Bazaar", "category": "Activity", "description": "Pick up regional crafts, spices, and souvenirs."},
-                {"time": "18:00", "activity": f"Sunset & Dinner", "location": "Promenade / Viewpoint", "category": "Food", "description": "Relax and enjoy dinner with local specialties."}
-            ]
-        })
-    return itinerary
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -246,7 +264,7 @@ async def maps_root(
     return templates.TemplateResponse("map.html", {
         "request": request, "user": user, "trip": None,
         "start_coords": None, "destination_coords": [20.5937, 78.9629],
-        "route_path": [], "recommendations": _fallback_recommendations("India", "mid"),
+        "route_path": [], "recommendations": None,
     })
 
 
@@ -296,23 +314,36 @@ async def trip_map(
 
     if cached:
         try:
-            recommendations = json.loads(cached.data_json)
+            cached_data = json.loads(cached.data_json)
+            recommendations = (
+                cached_data
+                if _cached_recommendations_are_usable(cached_data, cached.updated_at)
+                else None
+            )
         except Exception:
             recommendations = None
     else:
-        loop = asyncio.get_event_loop()
+        recommendations = None
+
+    if recommendations is None:
+        loop = asyncio.get_running_loop()
         recommendations = await loop.run_in_executor(
             None, get_gemini_recommendations, trip.destination, "mid"
         )
-        # Cache to DB
-        new_rec = TripRecommendation(
-            trip_id=trip_id,
-            budget_tier="mid",
-            category="all",
-            data_json=json.dumps(recommendations)
-        )
-        session.add(new_rec)
-        await session.commit()
+        if recommendations:
+            if cached:
+                cached.data_json = json.dumps(recommendations)
+                cached.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+                session.add(cached)
+            else:
+                new_rec = TripRecommendation(
+                    trip_id=trip_id,
+                    budget_tier="mid",
+                    category="all",
+                    data_json=json.dumps(recommendations)
+                )
+                session.add(new_rec)
+            await session.commit()
 
     return templates.TemplateResponse("map.html", {
         "request": request,
@@ -365,14 +396,22 @@ async def get_recommendations_api(
         cached = rec_res.scalar_one_or_none()
         if cached:
             try:
-                return JSONResponse(json.loads(cached.data_json))
+                cached_data = json.loads(cached.data_json)
+                if _cached_recommendations_are_usable(cached_data, cached.updated_at):
+                    return JSONResponse(cached_data)
             except Exception:
-                pass
+                logger.warning("Ignoring invalid cached recommendations for trip %s", trip_id)
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     recommendations = await loop.run_in_executor(
         None, get_gemini_recommendations, trip.destination, budget
     )
+
+    if not recommendations:
+        return JSONResponse(
+            {"error": "Couldn't load suggestions, retry"},
+            status_code=503
+        )
 
     # Update or save cache
     rec_stmt = select(TripRecommendation).where(
@@ -385,7 +424,7 @@ async def get_recommendations_api(
 
     if existing:
         existing.data_json = json.dumps(recommendations)
-        existing.updated_at = datetime.utcnow()
+        existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         session.add(existing)
     else:
         new_rec = TripRecommendation(
@@ -427,10 +466,15 @@ async def get_ai_itinerary_api(
         return JSONResponse({"error": "Unauthorized"}, status_code=401)
 
     duration = (trip.end_date - trip.start_date).days + 1
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     itinerary = await loop.run_in_executor(
         None, get_gemini_itinerary, trip.destination, duration, trip.start_location
     )
+    if not itinerary:
+        return JSONResponse(
+            {"error": "Couldn't load suggestions, retry"},
+            status_code=503
+        )
     return JSONResponse(itinerary)
 
 
@@ -458,7 +502,12 @@ async def add_ai_item_to_itinerary(
         return JSONResponse({"error": "Organizer permissions required"}, status_code=403)
 
     body = await request.json()
-    day_number = int(body.get("day_number", 1))
+    try:
+        day_number = int(body.get("day_number", 1))
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "Invalid day number"}, status_code=422)
+    if day_number < 1 or day_number > 365:
+        return JSONResponse({"error": "Invalid day number"}, status_code=422)
     activity = body.get("activity") or body.get("name")
     location = body.get("location") or body.get("area")
     description = body.get("description")

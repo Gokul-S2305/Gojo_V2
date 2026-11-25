@@ -1,4 +1,3 @@
-import pytest
 from app.routers.dashboard import _JOIN_CODE_CHARS, _title
 
 

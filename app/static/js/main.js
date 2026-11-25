@@ -571,14 +571,16 @@ const GojoApp = (function () {
             // Destination marker with real destination name
             const labelText = destName || 'Destination';
             const destIcon = L.divIcon({
-                html: '<div style="background:#4F46E5;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
+                html: '<div style="background:#147D75;width:18px;height:18px;border-radius:50%;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3);"></div>',
                 className: '',
                 iconSize: [18, 18],
                 iconAnchor: [9, 9]
             });
+            const destinationPopup = document.createElement('span');
+            destinationPopup.textContent = labelText;
             L.marker(destCoords, { icon: destIcon })
               .addTo(this.map)
-              .bindPopup(`<b>${labelText}</b>`)
+              .bindPopup(destinationPopup)
               .openPopup();
 
             // Start marker
@@ -597,7 +599,7 @@ const GojoApp = (function () {
             // Route with fitBounds
             if (routePath && routePath.length > 1) {
                 const polyline = L.polyline(routePath, {
-                    color: '#4F46E5',
+                    color: '#147D75',
                     weight: 5,
                     opacity: 0.85
                 }).addTo(this.map);

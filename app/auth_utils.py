@@ -7,6 +7,11 @@ import jwt
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 import logging
+from fastapi import Request, Depends, Cookie
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import get_session
+from app.models import User
+from sqlmodel import select
 
 from app.config import settings
 from authlib.integrations.starlette_client import OAuth
@@ -23,7 +28,7 @@ oauth.register(
     client_secret=settings.google_client_secret,
     server_metadata_url=settings.google_discovery_url,
     client_kwargs={
-        'scope': 'openid email profile https://www.googleapis.com/auth/drive.file',
+        'scope': 'openid email profile',
         'timeout': 10.0
     }
 )
@@ -107,11 +112,6 @@ def decode_access_token(token: str) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 # Current user dependency
 # ---------------------------------------------------------------------------
-from fastapi import Request, Depends, Cookie
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.database import get_session
-from app.models import User
-from sqlmodel import select
 
 
 async def get_current_user(
@@ -126,10 +126,8 @@ async def get_current_user(
     try:
         # Cookie value format: "Bearer <token>"
         parts = access_token.split()
-        if len(parts) != 2 or parts[0].lower() != 'bearer':
-            logger.warning("Malformed access_token cookie")
-            return None
-        payload = decode_access_token(parts[1])
+        token = parts[1] if len(parts) == 2 and parts[0].lower() == "bearer" else access_token
+        payload = decode_access_token(token)
         if payload is None:
             return None
         user_id = payload.get("user_id")

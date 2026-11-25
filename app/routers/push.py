@@ -2,7 +2,7 @@
 Web Push Notification support for Gojo Trip Planner.
 Uses the pywebpush library for VAPID-based Web Push.
 """
-from fastapi import APIRouter, Request, Depends, status
+from fastapi import APIRouter, Request, Depends
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select

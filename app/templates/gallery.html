@@ -83,7 +83,7 @@
   {% if photos %}
   <div class="gallery-grid">
     {% for photo in photos %}
-    <div class="gallery-card" onclick="openLightbox('{{ photo.url }}', '{{ photo.media_type }}', '{{ photo.caption | escape or '' }}')">
+    <div class="gallery-card" data-lightbox-url="{{ photo.url }}" data-lightbox-type="{{ photo.media_type }}" data-caption="{{ photo.caption or '' }}">
       {% if photo.media_type == 'video' %}
       <video src="{{ photo.url }}" preload="metadata"></video>
       <div style="position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.6); color: white; padding: 2px 8px; border-radius: var(--radius-sm); font-size: 0.7rem; font-weight: 600;">
@@ -197,18 +197,28 @@
   function openLightbox(url, type, caption) {
     const lb = document.getElementById('galleryLightbox');
     const container = document.getElementById('lightboxMediaContent');
-
-    if (type === 'video') {
-      container.innerHTML = `<video src="${url}" controls autoplay style="max-width: 100%; max-height: 80vh; border-radius: 8px;"></video>`;
-    } else {
-      container.innerHTML = `<img src="${url}" style="max-width: 100%; max-height: 80vh; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">`;
-    }
+    container.replaceChildren();
+    const media = document.createElement(type === 'video' ? 'video' : 'img');
+    media.src = url;
+    if (type === 'video') media.controls = true;
+    media.style.cssText = 'max-width:100%;max-height:80vh;border-radius:8px;';
+    container.appendChild(media);
     if (caption) {
-      container.innerHTML += `<div style="color: #FFFFFF; font-size: 0.95rem; margin-top: 0.75rem;">${caption}</div>`;
+      const captionEl = document.createElement('div');
+      captionEl.textContent = caption;
+      captionEl.style.cssText = 'color:#FFFFFF;font-size:0.95rem;margin-top:0.75rem;';
+      container.appendChild(captionEl);
     }
 
     lb.classList.add('active');
   }
+  document.querySelectorAll('[data-lightbox-url]').forEach(card => {
+    card.addEventListener('click', () => openLightbox(
+      card.dataset.lightboxUrl,
+      card.dataset.lightboxType,
+      card.dataset.caption
+    ));
+  });
 
   function closeLightbox() {
     document.getElementById('galleryLightbox').classList.remove('active');

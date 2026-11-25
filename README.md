@@ -4,25 +4,21 @@
 <br/>
 **Live Demo:** [https://gojo-trip-planner.onrender.com](https://gojo-trip-planner.onrender.com)
 
-Gojo Trip Planner is a comprehensive application designed to help you organize and manage your travels effortlessly. It offers two interfaces: a modern **FastAPI-based Web Application** and a feature-rich **PyQt5-based Desktop Application**.
+Gojo Trip Planner is a FastAPI web application for collaborative trip planning, itineraries, bookings, and shared travel memories.
 
 ## 🚀 Key Features
 
 ### 🌐 Web Application
 - **Authentication**: Secure user login and registration with Google OAuth Support.
 - **Dashboard**: Overview of upcoming trips, recent activities, and itinerary management.
-- **Smart AI Maps**: Interactive maps with OSRM routing and Gemini 2.5 Flash powered travel recommendations.
-- **Dark Mode**: Toggle between light and dark themes with full glassmorphism design for comfortable viewing.
+- **AI trip planning**: Generate destination ideas and day-by-day itinerary drafts with Gemini 2.5 Flash.
+- **Interactive maps**: Explore trip destinations and routes with OpenStreetMap data.
 - **Gallery**: Upload and download photos and videos to share memories.
 - **Real-time Chat**: Coordinate with fellow travelers instantly.
 - **PDF Export**: Generate professional trip summaries for offline use.
 
-### 💻 Desktop Application
-- **Personal Dashboard**: Quick access to your travel plans.
-- **Maps Preview**: Integrated map view for location scouting.
-- **Budget Planner**: track and manage your trip expenses.
-- **Email Reminders**: Never miss a deadline with automated trip notifications.
-- **Photo Gallery**: Local management of your travel photos.
+### 💻 Desktop Prototype
+The separate PyQt5 desktop app in `desktop/` is an unfinished demo, independent of the web app. Its login uses hardcoded demo credentials and its email reminder module contains placeholders. Do not use it with real accounts, data, or email credentials; it is not production-ready and its optional dependencies are not included in `requirements.txt`.
 
 ## 🛠️ Technology Stack
 
@@ -32,7 +28,7 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 - **Mapping**: Folium
 - **PDF Generation**: ReportLab
 - **Real-time**: WebSockets
-- **Authentication**: Python-JOSE, Passlib (Bcrypt)
+- **Authentication**: PyJWT, bcrypt, Authlib
 - **Deployment**: Render
 
 ## ⚙️ Installation
@@ -45,7 +41,9 @@ Gojo Trip Planner is a comprehensive application designed to help you organize a
 
 2. **Install dependencies**:
    ```bash
-   pip install -r req.txt
+   pip install -r requirements.txt
+
+3. **Configure AI suggestions** (optional): copy `.env.example` to `.env` and set `GEMINI_API_KEY` to a valid Google AI Studio key. AI suggestions are not replaced with sample places when the provider is unavailable; the page will offer a retry instead.
    ```
 
 ## 🏃 Usage
@@ -58,17 +56,16 @@ python run.py
 Then open your browser and navigate to `http://127.0.0.1:8000`.
 
 ### Running the Desktop Application
-Launch the PyQt5 GUI using the root `main.py`:
+The desktop prototype can be launched separately (after installing its required dependencies):
 ```bash
-python main.py
+python desktop/main.py
 ```
 
 ## 📁 Project Structure
 
 - `app/`: FastAPI web application source code (routers, templates, database).
-- `modules/`: PyQt5 desktop application modules.
-- `main.py`: Entry point for the Desktop application.
+- `desktop/`: Unfinished PyQt5 desktop prototype; not production-ready.
 - `run.py`: Entry point for the Web application server.
-- `req.txt`: Python dependencies.
-- `db/`: Database related files.
+- `requirements.txt`: Web application dependencies.
+- `alembic/`: Database schema migrations.
 - `uploads/` / `gallery/`: Storage for uploaded photos.
